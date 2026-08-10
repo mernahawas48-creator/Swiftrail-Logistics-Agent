@@ -18,6 +18,6 @@ if __name__ == "__main__":
     #   python server.py --http     -> Streamable HTTP on 127.0.0.1:8000
     if "--http" in sys.argv:
         print("Starting Swiftrail MCP server on Streamable HTTP: http://127.0.0.1:8000/mcp")
-        asyncio.run(app.run_streamable_http_async(host="127.0.0.1", port=8000))
+        asyncio.run(app.run_streamable_http_async())
     else:
         asyncio.run(app.run_stdio_async())
