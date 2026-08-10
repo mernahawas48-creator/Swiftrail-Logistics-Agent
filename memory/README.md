@@ -48,5 +48,3 @@ pytest's `tmp_path` fixture, so they never touch the real store.
    a customer's current standing, instead of re-deriving it from scratch
    every session.
 
-This wiring has not been done yet in `agent/agent_loop.py` -- see the
-open integration issue.
