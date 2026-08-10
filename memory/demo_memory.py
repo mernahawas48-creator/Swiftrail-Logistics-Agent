@@ -22,6 +22,7 @@ from memory.router import PromoteDropRouter
 from memory.scratchpad import Scratchpad
 from memory.semantic_store import SemanticMemory
 from memory.short_term import ShortTermBuffer, Turn
+from memory.verification import MemoryVerifier
 
 
 def main() -> None:
@@ -85,6 +86,32 @@ def main() -> None:
     for fact in semantic.fact_history(12, "customer_risk_level"):
         print(f"  v{fact.version} [{fact.status}] {fact.fact_value} "
               f"(created {fact.created_at})")
+
+    print("\n=== 7. Self-RAG-style verification on memory recall ===")
+    verifier = MemoryVerifier()
+    all_episodes = episodic.get_by_customer(12)
+
+    print("  -- a relevant, on-topic query --")
+    relevant_query = "any credit hold history for this customer"
+    good = verifier.verify(relevant_query, all_episodes)
+    print(f"  query: {relevant_query!r}")
+    print(f"  passed: {good.passed}")
+    print(f"  reason: {good.reason}")
+
+    print("\n  -- an off-topic query against the same recalled episodes --")
+    off_topic_query = "what is the weather forecast for tomorrow"
+    bad = verifier.verify(off_topic_query, all_episodes)
+    print(f"  query: {off_topic_query!r}")
+    print(f"  passed: {bad.passed}")
+    print(f"  reason: {bad.reason}")
+
+    print("\n  -- the superseded fact from step 5/6, recalled on its own --")
+    stale_facts = [f for f in semantic.fact_history(12, "customer_risk_level")
+                   if f.status == "superseded"]
+    stale_check = verifier.verify("what is the credit risk level for this customer",
+                                   stale_facts)
+    print(f"  passed: {stale_check.passed}")
+    print(f"  reason: {stale_check.reason}")
 
 
 if __name__ == "__main__":
