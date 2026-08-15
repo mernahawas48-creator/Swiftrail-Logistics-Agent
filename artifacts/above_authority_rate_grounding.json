@@ -1,0 +1,25 @@
+{
+  "case": "above_authority_rate",
+  "candidate": "ACTION: approve_rate_exception exception_id=2",
+  "ungrounded": {
+    "accepted": true,
+    "reason": "No external state was checked."
+  },
+  "grounded": {
+    "accepted": false,
+    "score": 0.7,
+    "issues": [
+      "Above-15% rate exceptions require a finance_manager; the current sales_rep cannot approve them.",
+      "The pending above-authority rate exception requires finance_manager escalation."
+    ],
+    "evidence_keys": [
+      "actions",
+      "active_holds",
+      "customer",
+      "employee",
+      "invoices",
+      "rate_exceptions",
+      "shipment"
+    ]
+  }
+}
