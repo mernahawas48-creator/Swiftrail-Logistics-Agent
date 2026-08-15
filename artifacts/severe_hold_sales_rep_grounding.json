@@ -1,0 +1,27 @@
+{
+  "case": "severe_hold_sales_rep",
+  "candidate": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: release_credit_hold hold_id=2\nACTION: release_shipment",
+  "ungrounded": {
+    "accepted": true,
+    "reason": "No external state was checked."
+  },
+  "grounded": {
+    "accepted": false,
+    "score": 0.4,
+    "issues": [
+      "Blocked shipment plan is missing required observations: check_rate_exception.",
+      "Sales representatives cannot release a severe credit hold; escalation to finance_manager is required.",
+      "An active severe credit hold requires escalation to finance_manager before release.",
+      "The shipment cannot be safely released while the customer remains on credit hold."
+    ],
+    "evidence_keys": [
+      "actions",
+      "active_holds",
+      "customer",
+      "employee",
+      "invoices",
+      "rate_exceptions",
+      "shipment"
+    ]
+  }
+}

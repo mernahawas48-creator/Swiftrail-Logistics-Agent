@@ -1,0 +1,35 @@
+{
+  "method": "Reflexion (grounded)",
+  "case": "above_authority_rate",
+  "success": true,
+  "trials": [
+    {
+      "number": 1,
+      "attempt": "ACTION: approve_rate_exception exception_id=2",
+      "feedback": {
+        "success": false,
+        "score": 0.7,
+        "details": [
+          "Above-15% rate exceptions require a finance_manager; the current sales_rep cannot approve them.",
+          "The pending above-authority rate exception requires finance_manager escalation."
+        ]
+      },
+      "reflection": "I must verify employee authority and grounded shipment constraints before proposing state-changing actions."
+    },
+    {
+      "number": 2,
+      "attempt": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_rate_exception\nACTION: escalate role=finance_manager",
+      "feedback": {
+        "success": true,
+        "score": 1.0,
+        "details": []
+      },
+      "reflection": null
+    }
+  ],
+  "episodic_memory_after_run": [
+    "I must verify employee authority and grounded shipment constraints before proposing state-changing actions."
+  ],
+  "llm_calls": 3,
+  "total_tokens": 247
+}
