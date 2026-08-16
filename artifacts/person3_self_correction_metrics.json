@@ -1,0 +1,46 @@
+[
+  {
+    "method": "Self-Refine (grounded)",
+    "success": true,
+    "llm_calls": 2,
+    "input_tokens": 302,
+    "output_tokens": 27,
+    "latency_ms": 0.2669869998044305,
+    "estimated_cost_usd": 6.2e-05,
+    "total_tokens": 329,
+    "case": "severe_hold_sales_rep"
+  },
+  {
+    "method": "Reflexion (grounded)",
+    "success": true,
+    "llm_calls": 3,
+    "input_tokens": 240,
+    "output_tokens": 39,
+    "latency_ms": 0.07395999978143664,
+    "estimated_cost_usd": 5.9e-05,
+    "total_tokens": 279,
+    "case": "severe_hold_sales_rep"
+  },
+  {
+    "method": "Self-Refine (grounded)",
+    "success": true,
+    "llm_calls": 2,
+    "input_tokens": 250,
+    "output_tokens": 23,
+    "latency_ms": 0.056072999996104045,
+    "estimated_cost_usd": 5.1e-05,
+    "total_tokens": 273,
+    "case": "above_authority_rate"
+  },
+  {
+    "method": "Reflexion (grounded)",
+    "success": true,
+    "llm_calls": 3,
+    "input_tokens": 222,
+    "output_tokens": 25,
+    "latency_ms": 0.04300399996282067,
+    "estimated_cost_usd": 4.8e-05,
+    "total_tokens": 247,
+    "case": "above_authority_rate"
+  }
+]
