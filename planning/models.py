@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import Any
 
 import networkx as nx
@@ -73,16 +72,12 @@ class Thought(BaseModel):
     rationale: str = ""
 
 
-@dataclass(slots=True)
-class EnvironmentFeedback:
-    """A grounded signal produced outside the language model.
+class EnvironmentFeedback(BaseModel):
+    """A grounded signal produced outside the language model."""
 
-    Kept as Ganna's dataclass version (not the original pydantic one) since
-    swiftrail_validator.py's grounded environment relies on the `evidence`
-    field this version adds.
-    """
+    model_config = ConfigDict(extra="forbid")
 
     success: bool
-    score: float
-    details: list[str] = field(default_factory=list)
-    evidence: dict[str, Any] = field(default_factory=dict)
+    score: float = Field(ge=0.0, le=1.0)
+    details: list[str] = Field(default_factory=list)
+    evidence: dict[str, Any] = Field(default_factory=dict)
