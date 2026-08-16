@@ -20,7 +20,7 @@ from .algorithms import (
     plan_and_solve,
     reflexion,
     reflect_and_refine,
-    Environment,
+    RandomEnvironment,
     tree_of_thoughts,
 )
 
@@ -101,7 +101,7 @@ def main() -> None:
         result = thoughts[0].state if thoughts else "No viable thought survived."
         payload.update(thoughts=[thought.model_dump() for thought in thoughts], result=result)
     elif args.mode == "reflexion":
-        environment = Environment(success_threshold=args.success_threshold)
+        environment = RandomEnvironment(success_threshold=args.success_threshold)
         outcome = reflexion(args.goal, llm, environment, args.max_trials, args.memory_size)
         result = outcome.output
         payload.update(
@@ -119,7 +119,7 @@ def main() -> None:
             result=result,
         )
     else:
-        environment = Environment(success_threshold=args.success_threshold)
+        environment = RandomEnvironment(success_threshold=args.success_threshold)
         outcome = lats(args.goal, llm, environment, args.iterations, args.n_actions)
         result = outcome.output
         payload.update(

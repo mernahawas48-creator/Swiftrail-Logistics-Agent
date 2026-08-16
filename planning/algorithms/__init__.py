@@ -8,7 +8,7 @@ from .decomposition import (
     final_output,
 )
 from .dynamic_decomposition import dynamic_decomposition, dynamic_decompose_blocked_shipment
-from .environment import Environment
+from .environment import Environment, RandomEnvironment
 from .lats import flatten_lats_tree, lats
 from .plan_and_solve import plan_and_solve
 from .reflexion import reflexion

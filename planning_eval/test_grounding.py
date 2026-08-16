@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from planning.environment import Environment
-from planning_eval.test_cases import above_authority_rate_case, severe_hold_sales_rep_case
-
+from planning_eval.test_cases import (
+    above_authority_rate_case,
+    severe_hold_sales_rep_case,
+)
 
 def test_grounded_catches_sales_rep_severe_hold_release():
     _, employee_id, snapshot = severe_hold_sales_rep_case()
