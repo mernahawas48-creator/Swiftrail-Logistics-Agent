@@ -1,0 +1,26 @@
+[
+  {
+    "case": "severe_hold_sales_rep",
+    "bad_success": false,
+    "bad_score": 0.4,
+    "good_success": true,
+    "good_score": 1.0,
+    "bad_issues": [
+      "Blocked shipment plan is missing required observations: check_rate_exception.",
+      "Sales representatives cannot release a severe credit hold; escalation to finance_manager is required.",
+      "An active severe credit hold requires escalation to finance_manager before release.",
+      "The shipment cannot be safely released while the customer remains on credit hold."
+    ]
+  },
+  {
+    "case": "above_authority_rate",
+    "bad_success": false,
+    "bad_score": 0.7,
+    "good_success": true,
+    "good_score": 1.0,
+    "bad_issues": [
+      "Above-15% rate exceptions require a finance_manager; the current sales_rep cannot approve them.",
+      "The pending above-authority rate exception requires finance_manager escalation."
+    ]
+  }
+]
