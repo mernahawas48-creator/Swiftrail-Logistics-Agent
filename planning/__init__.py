@@ -1,1 +1,1 @@
-"""Person 3 planning extensions for Swiftrail Shipment Exception Resolution."""
+"""Swiftrail planning and decomposition package."""
