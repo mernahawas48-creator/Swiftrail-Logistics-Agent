@@ -26,13 +26,13 @@ class PlanningProfile(BaseModel):
     high_stakes: bool = False
     grounded_validation_available: bool = False
 
-def prompt(self) -> str:
-    if self.context.strip():
-        return (
-            f"Sub-task:\n{self.instruction.strip()}\n\n"
-            f"Available context:\n{self.context.strip()}"
-        )
-    return self.instruction.strip()
+    def prompt(self) -> str:
+        if self.context.strip():
+            return (
+                f"Sub-task:\n{self.instruction.strip()}\n\n"
+                f"Available context:\n{self.context.strip()}"
+            )
+        return self.instruction.strip()
         
 
 class RoutingDecision(BaseModel):
