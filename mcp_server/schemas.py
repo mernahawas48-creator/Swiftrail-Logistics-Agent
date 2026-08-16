@@ -72,6 +72,24 @@ class CustomerInvoicesInput(SessionScopedInput):
     )
 
 
+class CustomerCreditHoldsInput(SessionScopedInput):
+    customer_id: int = Field(
+        ...,
+        gt=0,
+        description="Positive customer identifier whose credit holds will be listed.",
+        examples=[3],
+    )
+
+
+class ShipmentRateExceptionInput(SessionScopedInput):
+    shipment_id: int = Field(
+        ...,
+        gt=0,
+        description="Positive shipment identifier whose pending rate exception, if any, is returned.",
+        examples=[500],
+    )
+
+
 class ApproveRateExceptionInput(SessionScopedInput):
     exception_id: int = Field(
         ...,
