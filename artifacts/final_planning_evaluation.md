@@ -28,10 +28,10 @@ Evaluation mode: deterministic offline evaluation without API keys.
 
 | Case | Method | Success | LLM Calls | Total Tokens | Latency ms |
 |---|---|---:|---:|---:|---:|
-| severe_hold_sales_rep | Self-Refine (grounded) | True | 2 | 327 | 0.36 |
-| severe_hold_sales_rep | Reflexion (grounded) | True | 3 | 326 | 0.13 |
-| above_authority_rate | Self-Refine (grounded) | True | 2 | 271 | 0.10 |
-| above_authority_rate | Reflexion (grounded) | True | 3 | 294 | 0.09 |
+| severe_hold_sales_rep | Self-Refine (grounded) | True | 2 | 311 | 0.74 |
+| severe_hold_sales_rep | Reflexion (grounded) | True | 3 | 318 | 0.33 |
+| above_authority_rate | Self-Refine (grounded) | True | 2 | 271 | 0.25 |
+| above_authority_rate | Reflexion (grounded) | True | 3 | 294 | 0.26 |
 
 ## Final Checks
 

@@ -15,7 +15,7 @@
       "input_tokens": 4475,
       "output_tokens": 852,
       "total_tokens": 5327,
-      "latency_ms": 4.462,
+      "latency_ms": 7.382,
       "estimated_cost_usd": 0.001182,
       "tool_calls": 5,
       "note": "Whole DAG committed up front; independent reads execute in one batch."
@@ -29,7 +29,7 @@
       "input_tokens": 7093,
       "output_tokens": 404,
       "total_tokens": 7497,
-      "latency_ms": 6.067,
+      "latency_ms": 46.193,
       "estimated_cost_usd": 0.001306,
       "tool_calls": 3,
       "note": "Interleaved next-step decisions; grounded severe-hold rule may force early escalation."
@@ -40,11 +40,11 @@
       "method": "Decomposition-first",
       "success": true,
       "llm_calls": 15,
-      "input_tokens": 4758,
+      "input_tokens": 4732,
       "output_tokens": 931,
-      "total_tokens": 5689,
-      "latency_ms": 3.506,
-      "estimated_cost_usd": 0.001272,
+      "total_tokens": 5663,
+      "latency_ms": 20.879,
+      "estimated_cost_usd": 0.001268,
       "tool_calls": 5,
       "note": "Whole DAG committed up front; independent reads execute in one batch."
     },
@@ -54,11 +54,11 @@
       "method": "Dynamic decomposition",
       "success": true,
       "llm_calls": 7,
-      "input_tokens": 3628,
+      "input_tokens": 3598,
       "output_tokens": 253,
-      "total_tokens": 3881,
-      "latency_ms": 5.032,
-      "estimated_cost_usd": 0.000696,
+      "total_tokens": 3851,
+      "latency_ms": 44.555,
+      "estimated_cost_usd": 0.000691,
       "tool_calls": 3,
       "note": "Interleaved next-step decisions; grounded severe-hold rule may force early escalation."
     },
@@ -71,7 +71,7 @@
       "input_tokens": 219,
       "output_tokens": 15,
       "total_tokens": 234,
-      "latency_ms": 0.082,
+      "latency_ms": 0.131,
       "estimated_cost_usd": 4.2e-05,
       "tool_calls": 0,
       "note": "Single explicit plan/solve pass; no search."
@@ -85,7 +85,7 @@
       "input_tokens": 2182,
       "output_tokens": 252,
       "total_tokens": 2434,
-      "latency_ms": 0.845,
+      "latency_ms": 1.336,
       "estimated_cost_usd": 0.000478,
       "tool_calls": 0,
       "note": "Two-level beam search; model scores alternatives and prunes weaker branches."
@@ -99,7 +99,7 @@
       "input_tokens": 502,
       "output_tokens": 80,
       "total_tokens": 582,
-      "latency_ms": 0.246,
+      "latency_ms": 0.377,
       "estimated_cost_usd": 0.000123,
       "tool_calls": 0,
       "note": "Toolkit-style randomized feedback; final quality rechecked by real validator."
@@ -113,7 +113,7 @@
       "input_tokens": 949,
       "output_tokens": 104,
       "total_tokens": 1053,
-      "latency_ms": 0.402,
+      "latency_ms": 0.667,
       "estimated_cost_usd": 0.000205,
       "tool_calls": 0,
       "note": "MCTS with real validator feedback."
@@ -127,7 +127,7 @@
       "input_tokens": 213,
       "output_tokens": 6,
       "total_tokens": 219,
-      "latency_ms": 0.079,
+      "latency_ms": 0.117,
       "estimated_cost_usd": 3.6e-05,
       "tool_calls": 0,
       "note": "Single explicit plan/solve pass; no search."
@@ -141,7 +141,7 @@
       "input_tokens": 2104,
       "output_tokens": 234,
       "total_tokens": 2338,
-      "latency_ms": 0.853,
+      "latency_ms": 1.367,
       "estimated_cost_usd": 0.000456,
       "tool_calls": 0,
       "note": "Two-level beam search; model scores alternatives and prunes weaker branches."
@@ -155,7 +155,7 @@
       "input_tokens": 485,
       "output_tokens": 74,
       "total_tokens": 559,
-      "latency_ms": 0.217,
+      "latency_ms": 0.344,
       "estimated_cost_usd": 0.000117,
       "tool_calls": 0,
       "note": "Toolkit-style randomized feedback; final quality rechecked by real validator."
@@ -169,7 +169,7 @@
       "input_tokens": 914,
       "output_tokens": 98,
       "total_tokens": 1012,
-      "latency_ms": 0.371,
+      "latency_ms": 0.653,
       "estimated_cost_usd": 0.000196,
       "tool_calls": 0,
       "note": "MCTS with real validator feedback."
@@ -183,7 +183,7 @@
       "input_tokens": 479,
       "output_tokens": 29,
       "total_tokens": 508,
-      "latency_ms": 0.464,
+      "latency_ms": 1.938,
       "estimated_cost_usd": 8.9e-05,
       "tool_calls": 0,
       "note": "One critique and one revision only."
@@ -197,7 +197,7 @@
       "input_tokens": 503,
       "output_tokens": 42,
       "total_tokens": 545,
-      "latency_ms": 0.251,
+      "latency_ms": 0.41,
       "estimated_cost_usd": 0.000101,
       "tool_calls": 0,
       "note": "Retries the whole task and carries one grounded reflection into trial 2."
@@ -208,11 +208,11 @@
       "method": "Self-Refine",
       "success": false,
       "llm_calls": 2,
-      "input_tokens": 559,
-      "output_tokens": 29,
-      "total_tokens": 588,
-      "latency_ms": 0.251,
-      "estimated_cost_usd": 0.000101,
+      "input_tokens": 533,
+      "output_tokens": 26,
+      "total_tokens": 559,
+      "latency_ms": 0.417,
+      "estimated_cost_usd": 9.6e-05,
       "tool_calls": 0,
       "note": "One critique and one revision only."
     },
@@ -222,11 +222,11 @@
       "method": "Reflexion",
       "success": true,
       "llm_calls": 3,
-      "input_tokens": 525,
+      "input_tokens": 512,
       "output_tokens": 63,
-      "total_tokens": 588,
-      "latency_ms": 0.243,
-      "estimated_cost_usd": 0.000117,
+      "total_tokens": 575,
+      "latency_ms": 0.452,
+      "estimated_cost_usd": 0.000115,
       "tool_calls": 0,
       "note": "Retries the whole task and carries one grounded reflection into trial 2."
     }
@@ -237,9 +237,9 @@
       "success": "2/2",
       "success_rate": 1.0,
       "avg_llm_calls": 15,
-      "avg_tokens": 5508,
-      "avg_latency_ms": 3.984,
-      "avg_estimated_cost_usd": 0.001227,
+      "avg_tokens": 5495,
+      "avg_latency_ms": 14.131,
+      "avg_estimated_cost_usd": 0.001225,
       "avg_tool_calls": 5
     },
     {
@@ -247,9 +247,9 @@
       "success": "1/2",
       "success_rate": 0.5,
       "avg_llm_calls": 10.5,
-      "avg_tokens": 5689,
-      "avg_latency_ms": 5.55,
-      "avg_estimated_cost_usd": 0.001001,
+      "avg_tokens": 5674,
+      "avg_latency_ms": 45.374,
+      "avg_estimated_cost_usd": 0.000999,
       "avg_tool_calls": 3
     },
     {
@@ -258,7 +258,7 @@
       "success_rate": 0.5,
       "avg_llm_calls": 1,
       "avg_tokens": 226.5,
-      "avg_latency_ms": 0.081,
+      "avg_latency_ms": 0.124,
       "avg_estimated_cost_usd": 3.9e-05,
       "avg_tool_calls": 0
     },
@@ -268,7 +268,7 @@
       "success_rate": 1.0,
       "avg_llm_calls": 9,
       "avg_tokens": 2386,
-      "avg_latency_ms": 0.849,
+      "avg_latency_ms": 1.352,
       "avg_estimated_cost_usd": 0.000467,
       "avg_tool_calls": 0
     },
@@ -278,7 +278,7 @@
       "success_rate": 0.0,
       "avg_llm_calls": 2,
       "avg_tokens": 570.5,
-      "avg_latency_ms": 0.231,
+      "avg_latency_ms": 0.36,
       "avg_estimated_cost_usd": 0.00012,
       "avg_tool_calls": 0
     },
@@ -288,7 +288,7 @@
       "success_rate": 1.0,
       "avg_llm_calls": 4,
       "avg_tokens": 1032.5,
-      "avg_latency_ms": 0.387,
+      "avg_latency_ms": 0.66,
       "avg_estimated_cost_usd": 0.0002,
       "avg_tool_calls": 0
     },
@@ -297,9 +297,9 @@
       "success": "1/2",
       "success_rate": 0.5,
       "avg_llm_calls": 2,
-      "avg_tokens": 548,
-      "avg_latency_ms": 0.358,
-      "avg_estimated_cost_usd": 9.5e-05,
+      "avg_tokens": 533.5,
+      "avg_latency_ms": 1.177,
+      "avg_estimated_cost_usd": 9.2e-05,
       "avg_tool_calls": 0
     },
     {
@@ -307,9 +307,9 @@
       "success": "2/2",
       "success_rate": 1.0,
       "avg_llm_calls": 3,
-      "avg_tokens": 566.5,
-      "avg_latency_ms": 0.247,
-      "avg_estimated_cost_usd": 0.000109,
+      "avg_tokens": 560,
+      "avg_latency_ms": 0.431,
+      "avg_estimated_cost_usd": 0.000108,
       "avg_tool_calls": 0
     }
   ],
@@ -1405,10 +1405,9 @@
         "Self-Refine": {
           "draft": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: release_credit_hold hold_id=2\nACTION: release_shipment",
           "critique": "The draft violates or incompletely covers the grounded Swiftrail authority and observation requirements.",
-          "revised": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_credit_hold\nACTION: escalate role=finance_manager",
+          "revised": "ACTION: check_customer\nACTION: check_credit_hold\nACTION: escalate role=finance_manager",
           "grounded_issues": [
             "The deliverable is under 80 words and is probably incomplete.",
-            "Blocked shipment plan is missing required observations: check_rate_exception.",
             "Sales representatives cannot release a severe credit hold; escalation to finance_manager is required.",
             "An active severe credit hold requires escalation to finance_manager before release.",
             "The shipment cannot be safely released while the customer remains on credit hold."
@@ -1417,7 +1416,7 @@
             "success": false,
             "score": 0.85,
             "details": [
-              "Blocked shipment plan is missing required observations: check_invoices, check_rate_exception."
+              "Blocked shipment plan is missing required observations: check_shipment."
             ],
             "evidence": {
               "employee": {
@@ -1466,10 +1465,6 @@
               "rate_exceptions": [],
               "actions": [
                 [
-                  "check_shipment",
-                  {}
-                ],
-                [
                   "check_customer",
                   {}
                 ],
@@ -1497,9 +1492,8 @@
               "number": 1,
               "attempt": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: release_credit_hold hold_id=2\nACTION: release_shipment",
               "success": false,
-              "score": 0.4,
+              "score": 0.55,
               "issues": [
-                "Blocked shipment plan is missing required observations: check_rate_exception.",
                 "Sales representatives cannot release a severe credit hold; escalation to finance_manager is required.",
                 "An active severe credit hold requires escalation to finance_manager before release.",
                 "The shipment cannot be safely released while the customer remains on credit hold."

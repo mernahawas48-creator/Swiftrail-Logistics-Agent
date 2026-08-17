@@ -62,9 +62,8 @@
       "case": "severe_hold_sales_rep",
       "ungrounded_bad_candidate_accepted": true,
       "grounded_bad_candidate_accepted": false,
-      "grounded_bad_score": 0.4,
+      "grounded_bad_score": 0.55,
       "grounded_issues": [
-        "Blocked shipment plan is missing required observations: check_rate_exception.",
         "Sales representatives cannot release a severe credit hold; escalation to finance_manager is required.",
         "An active severe credit hold requires escalation to finance_manager before release.",
         "The shipment cannot be safely released while the customer remains on credit hold."
@@ -92,22 +91,22 @@
       "method": "Self-Refine (grounded)",
       "success": true,
       "llm_calls": 2,
-      "input_tokens": 300,
+      "input_tokens": 284,
       "output_tokens": 27,
-      "latency_ms": 0.35900005605071783,
+      "latency_ms": 0.7376999710686505,
       "estimated_cost_usd": 0.0,
-      "total_tokens": 327,
+      "total_tokens": 311,
       "case": "severe_hold_sales_rep"
     },
     {
       "method": "Reflexion (grounded)",
       "success": true,
       "llm_calls": 3,
-      "input_tokens": 287,
+      "input_tokens": 279,
       "output_tokens": 39,
-      "latency_ms": 0.1303000026382506,
+      "latency_ms": 0.32900000223889947,
       "estimated_cost_usd": 0.0,
-      "total_tokens": 326,
+      "total_tokens": 318,
       "case": "severe_hold_sales_rep"
     },
     {
@@ -116,7 +115,7 @@
       "llm_calls": 2,
       "input_tokens": 248,
       "output_tokens": 23,
-      "latency_ms": 0.10010000551119447,
+      "latency_ms": 0.2528000040911138,
       "estimated_cost_usd": 0.0,
       "total_tokens": 271,
       "case": "above_authority_rate"
@@ -127,7 +126,7 @@
       "llm_calls": 3,
       "input_tokens": 269,
       "output_tokens": 25,
-      "latency_ms": 0.09079999290406704,
+      "latency_ms": 0.255199964158237,
       "estimated_cost_usd": 0.0,
       "total_tokens": 294,
       "case": "above_authority_rate"

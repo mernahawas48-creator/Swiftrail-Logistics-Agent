@@ -4,9 +4,9 @@
     "success": "2/2",
     "success_rate": 1.0,
     "avg_llm_calls": 15,
-    "avg_tokens": 5508,
-    "avg_latency_ms": 3.984,
-    "avg_estimated_cost_usd": 0.001227,
+    "avg_tokens": 5495,
+    "avg_latency_ms": 14.131,
+    "avg_estimated_cost_usd": 0.001225,
     "avg_tool_calls": 5
   },
   {
@@ -14,9 +14,9 @@
     "success": "1/2",
     "success_rate": 0.5,
     "avg_llm_calls": 10.5,
-    "avg_tokens": 5689,
-    "avg_latency_ms": 5.55,
-    "avg_estimated_cost_usd": 0.001001,
+    "avg_tokens": 5674,
+    "avg_latency_ms": 45.374,
+    "avg_estimated_cost_usd": 0.000999,
     "avg_tool_calls": 3
   },
   {
@@ -25,7 +25,7 @@
     "success_rate": 0.5,
     "avg_llm_calls": 1,
     "avg_tokens": 226.5,
-    "avg_latency_ms": 0.081,
+    "avg_latency_ms": 0.124,
     "avg_estimated_cost_usd": 3.9e-05,
     "avg_tool_calls": 0
   },
@@ -35,7 +35,7 @@
     "success_rate": 1.0,
     "avg_llm_calls": 9,
     "avg_tokens": 2386,
-    "avg_latency_ms": 0.849,
+    "avg_latency_ms": 1.352,
     "avg_estimated_cost_usd": 0.000467,
     "avg_tool_calls": 0
   },
@@ -45,7 +45,7 @@
     "success_rate": 0.0,
     "avg_llm_calls": 2,
     "avg_tokens": 570.5,
-    "avg_latency_ms": 0.231,
+    "avg_latency_ms": 0.36,
     "avg_estimated_cost_usd": 0.00012,
     "avg_tool_calls": 0
   },
@@ -55,7 +55,7 @@
     "success_rate": 1.0,
     "avg_llm_calls": 4,
     "avg_tokens": 1032.5,
-    "avg_latency_ms": 0.387,
+    "avg_latency_ms": 0.66,
     "avg_estimated_cost_usd": 0.0002,
     "avg_tool_calls": 0
   },
@@ -64,9 +64,9 @@
     "success": "1/2",
     "success_rate": 0.5,
     "avg_llm_calls": 2,
-    "avg_tokens": 548,
-    "avg_latency_ms": 0.358,
-    "avg_estimated_cost_usd": 9.5e-05,
+    "avg_tokens": 533.5,
+    "avg_latency_ms": 1.177,
+    "avg_estimated_cost_usd": 9.2e-05,
     "avg_tool_calls": 0
   },
   {
@@ -74,9 +74,9 @@
     "success": "2/2",
     "success_rate": 1.0,
     "avg_llm_calls": 3,
-    "avg_tokens": 566.5,
-    "avg_latency_ms": 0.247,
-    "avg_estimated_cost_usd": 0.000109,
+    "avg_tokens": 560,
+    "avg_latency_ms": 0.431,
+    "avg_estimated_cost_usd": 0.000108,
     "avg_tool_calls": 0
   }
 ]

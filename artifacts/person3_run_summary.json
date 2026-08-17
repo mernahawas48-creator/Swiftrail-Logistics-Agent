@@ -4,27 +4,27 @@
     "method": "Self-Refine (grounded)",
     "success": true,
     "llm_calls": 2,
-    "total_tokens": 325
+    "total_tokens": 307
   },
   {
     "case": "severe_hold_sales_rep",
     "method": "Reflexion (grounded)",
     "success": true,
     "llm_calls": 3,
-    "total_tokens": 279
+    "total_tokens": 318
   },
   {
     "case": "above_authority_rate",
     "method": "Self-Refine (grounded)",
     "success": true,
     "llm_calls": 2,
-    "total_tokens": 269
+    "total_tokens": 267
   },
   {
     "case": "above_authority_rate",
     "method": "Reflexion (grounded)",
     "success": true,
     "llm_calls": 3,
-    "total_tokens": 247
+    "total_tokens": 294
   }
 ]

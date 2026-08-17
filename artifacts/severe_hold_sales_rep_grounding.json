@@ -7,9 +7,8 @@
   },
   "grounded": {
     "accepted": false,
-    "score": 0.4,
+    "score": 0.55,
     "issues": [
-      "Blocked shipment plan is missing required observations: check_rate_exception.",
       "Sales representatives cannot release a severe credit hold; escalation to finance_manager is required.",
       "An active severe credit hold requires escalation to finance_manager before release.",
       "The shipment cannot be safely released while the customer remains on credit hold."
