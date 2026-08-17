@@ -28,6 +28,7 @@ from .algorithms.environment import Environment
 from .divergence import compute_divergence
 from .execution_adapter import SubtaskExecutionAdapter
 from .trace_logger import log_decomposition_first_run, log_divergence, log_dynamic_run
+from .action_executor import ActionExecutionResult, execute_safe_actions
 
 if TYPE_CHECKING:  # pragma: no cover
     from agent.client import SwiftrailAgent
@@ -43,6 +44,7 @@ class PlanningRunResult:
     method: DecompositionMethod
     result: str
     artifact_path: str
+    action_results: list[ActionExecutionResult]
 
 
 class SwiftrailPlanningOrchestrator:
@@ -95,6 +97,14 @@ class SwiftrailPlanningOrchestrator:
             raise ValueError(f"Expected exactly one terminal reasoning task, found {terminal}")
         result = outputs[terminal[0]]
 
+        action_results = await execute_safe_actions(
+            plan_text=result,
+            agent=self.agent,
+            session_id=self.session_id,
+            shipment_id=shipment_id,
+            customer_id=customer_id,
+        )
+        
         artifact = log_decomposition_first_run(
             shipment_id=shipment_id,
             customer_id=customer_id,
@@ -103,7 +113,12 @@ class SwiftrailPlanningOrchestrator:
             final_result=result,
             total_llm_calls=llm_calls,
         )
-        return PlanningRunResult(DecompositionMethod.DECOMPOSITION_FIRST, result, str(artifact))
+        return PlanningRunResult(
+            DecompositionMethod.DECOMPOSITION_FIRST,
+            result,
+            str(artifact),
+            action_results,
+        )
 
     async def _run_dynamic(self, shipment_id: int, customer_id: int) -> PlanningRunResult:
         async def call_tool(tool_name: str, args: dict) -> dict:
@@ -127,6 +142,13 @@ class SwiftrailPlanningOrchestrator:
             environment=environment,
         )
         result = steps[-1].output if steps else "No steps were executed."
+        action_results = await execute_safe_actions(
+            plan_text=result,
+            agent=self.agent,
+            session_id=self.session_id,
+            shipment_id=shipment_id,
+            customer_id=customer_id,
+        )
         # Roughly one LLM call per non-forced decision, plus the final
         # synthesis call; forced steps (the safety override) cost zero LLM
         # calls for the *decision* itself, which is part of why dynamic
@@ -140,8 +162,12 @@ class SwiftrailPlanningOrchestrator:
             final_result=result,
             total_llm_calls=llm_calls,
         )
-        return PlanningRunResult(DecompositionMethod.DYNAMIC, result, str(artifact))
-
+        return PlanningRunResult(
+            DecompositionMethod.DYNAMIC,
+            result,
+            str(artifact),
+            action_results,
+        )
     async def run_both_and_log_divergence(
         self,
         shipment_id: int,
