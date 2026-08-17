@@ -146,3 +146,112 @@ def test_execute_plan_swiftrail_passes_only_declared_dependencies():
     assert set(seen_context["t4"].keys()) == {"t1", "t2", "t3"}
     assert seen_context["t1"] == {}  # t1 has no dependencies
     assert llm_calls == 1  # only t4 is a reasoning sub-task
+
+def test_reasoning_roles_route_to_ps_tot_and_lats():
+    from .algorithms.decomposition import decompose_blocked_shipment
+    from .planning_router import (
+        PlanningMethod,
+        PlanningProfile,
+        route_subtask,
+    )
+
+    generated_payload = {
+        "goal": "ignored",
+        "tasks": [
+            {
+                "id": "t1",
+                "instruction": "Fetch shipment status",
+                "depends_on": [],
+                "kind": "tool_call",
+                "tool_name": "fetch_shipment",
+                "reasoning_role": None,
+            },
+            {
+                "id": "t2",
+                "instruction": "Fetch customer credit state",
+                "depends_on": [],
+                "kind": "tool_call",
+                "tool_name": "fetch_customer",
+                "reasoning_role": None,
+            },
+            {
+                "id": "t3",
+                "instruction": "Fetch active credit holds",
+                "depends_on": [],
+                "kind": "tool_call",
+                "tool_name": "fetch_credit_holds",
+                "reasoning_role": None,
+            },
+            {
+                "id": "t4",
+                "instruction": (
+                    "Summarize confirmed blockers and authority constraints"
+                ),
+                "depends_on": ["t1", "t2", "t3"],
+                "kind": "reasoning",
+                "tool_name": None,
+                "reasoning_role": "linear",
+            },
+            {
+                "id": "t5",
+                "instruction": (
+                    "Compare multiple safe resolution strategies"
+                ),
+                "depends_on": ["t4"],
+                "kind": "reasoning",
+                "tool_name": None,
+                "reasoning_role": "branching",
+            },
+            {
+                "id": "t6",
+                "instruction": (
+                    "Choose the final safe executable resolution plan"
+                ),
+                "depends_on": ["t5"],
+                "kind": "reasoning",
+                "tool_name": None,
+                "reasoning_role": "final",
+            },
+        ],
+    }
+
+    class FakeStructuredRunner:
+        def invoke(self, *args, **kwargs):
+            from .algorithms.decomposition import SwiftrailGeneratedPlan
+
+            return SwiftrailGeneratedPlan.model_validate(
+                generated_payload
+            )
+
+    class FakeLLM:
+        def with_structured_output(self, *args, **kwargs):
+            return FakeStructuredRunner()
+
+    swiftrail_plan = decompose_blocked_shipment(
+        shipment_id=3,
+        customer_id=3,
+        llm=FakeLLM(),
+    )
+
+    expected_routes = {
+        "t4": PlanningMethod.PLAN_AND_SOLVE,
+        "t5": PlanningMethod.TREE_OF_THOUGHTS,
+        "t6": PlanningMethod.LATS,
+    }
+
+    for task_id, expected_method in expected_routes.items():
+        task = swiftrail_plan.task(task_id)
+        meta = swiftrail_plan.meta[task_id]
+
+        profile = PlanningProfile(
+            instruction=task.instruction,
+            needs_branching=meta.needs_branching,
+            high_stakes=meta.high_stakes,
+            grounded_validation_available=(
+                meta.grounded_validation_available
+            ),
+        )
+
+        decision = route_subtask(profile)
+
+        assert decision.method is expected_method

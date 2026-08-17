@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from enum import Enum
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
@@ -129,6 +130,10 @@ synthesize a resolution sequence from the lookups' outputs, respecting role auth
 (sales_rep vs finance_manager) and escalating whatever it cannot safely resolve itself."""
 
 
+class ReasoningRole(str, Enum):
+    LINEAR = "linear"
+    BRANCHING = "branching"
+    FINAL = "final"
 class SwiftrailPlannedTask(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -137,6 +142,7 @@ class SwiftrailPlannedTask(BaseModel):
     depends_on: list[str]
     kind: SubtaskKind
     tool_name: str | None = None
+    reasoning_role: ReasoningRole | None = None
 
 
 class SwiftrailGeneratedPlan(BaseModel):
@@ -191,40 +197,151 @@ def decompose_blocked_shipment(
         ("system", PLANNER_SYSTEM + "\n\n" + TOOL_CATALOG),
         (
             "human",
-            f"Decompose this goal into a DAG of 4-6 tasks: {goal!r}\n"
-            "Every non-reasoning task must set kind='tool_call' and tool_name to one of "
-            "the tool ids listed above. There must be exactly one kind='reasoning' task, "
-            "depending on every tool_call task, that produces the final resolution "
-            "sequence. Do not invent tool ids.",
+            f"Decompose this goal into a DAG of 6-8 tasks: {goal!r}\n"
+        "Every deterministic lookup must set kind='tool_call', tool_name to one of "
+        "the tool ids listed above, and reasoning_role=null. Use exactly three "
+        "kind='reasoning' tasks, each with tool_name=null:\n"
+        "1) reasoning_role='linear': summarize the confirmed blockers and authority/"
+        "policy constraints from the gathered evidence; it must depend on the selected "
+        "tool_call evidence tasks.\n"
+        "2) reasoning_role='branching': compare multiple plausible safe resolution "
+        "sequences and their trade-offs; it must depend on the linear reasoning task.\n"
+        "3) reasoning_role='final': choose the final safe executable/escalation plan; "
+        "it must depend on the branching reasoning task and be the only terminal task.\n"
+        "Do not invent tool ids.",
         ),
     ], temperature=0.1)
 
     plan_payload = {
         "goal": goal,
-        "tasks": [t.model_dump(exclude={"kind", "tool_name"}) for t in generated.tasks],
+        "tasks": [
+            t.model_dump(
+                exclude={"kind", "tool_name", "reasoning_role"}
+            )
+            for t in generated.tasks
+        ],
     }
-    plan = Plan.model_validate(plan_payload)  # enforces acyclicity, unique ids, known deps
+    plan = Plan.model_validate(
+        plan_payload
+    )  # enforces acyclicity, unique ids, known deps
+
+    # Validate the three reasoning roles before building routing metadata.
+    reasoning_tasks = [
+        task
+        for task in generated.tasks
+        if task.kind is SubtaskKind.REASONING
+    ]
+
+    expected_roles = {
+        ReasoningRole.LINEAR,
+        ReasoningRole.BRANCHING,
+        ReasoningRole.FINAL,
+    }
+
+    actual_roles = [
+        task.reasoning_role
+        for task in reasoning_tasks
+    ]
+
+    if len(reasoning_tasks) != 3 or set(actual_roles) != expected_roles:
+        raise ValueError(
+            "The Swiftrail decomposition must contain exactly one linear, "
+            "one branching, and one final reasoning task."
+        )
+
+    role_tasks = {
+        task.reasoning_role: task
+        for task in reasoning_tasks
+    }
+
+    linear_task = role_tasks[ReasoningRole.LINEAR]
+    branching_task = role_tasks[ReasoningRole.BRANCHING]
+    final_task = role_tasks[ReasoningRole.FINAL]
+
+    tool_task_ids = {
+        task.id
+        for task in generated.tasks
+        if task.kind is SubtaskKind.TOOL_CALL
+    }
+
+    # Linear reasoning must receive all gathered evidence.
+    if not tool_task_ids.issubset(set(linear_task.depends_on)):
+        raise ValueError(
+            "The linear reasoning task must depend on all selected "
+            "tool-call evidence tasks."
+        )
+
+    # Branching reasoning uses the linear analysis.
+    if linear_task.id not in branching_task.depends_on:
+        raise ValueError(
+            "The branching reasoning task must depend on the linear task."
+        )
+
+    # Final high-stakes reasoning uses the alternatives from ToT.
+    if branching_task.id not in final_task.depends_on:
+        raise ValueError(
+            "The final reasoning task must depend on the branching task."
+        )
+
+    # The final reasoning node must be the only terminal node.
+    if plan.terminal_tasks() != [final_task.id]:
+        raise ValueError(
+            "The final reasoning task must be the plan's only terminal task."
+        )
 
     meta: dict[str, SubtaskMeta] = {}
+
     for t in generated.tasks:
         if t.kind is SubtaskKind.TOOL_CALL:
             if t.tool_name not in _TOOL_BINDINGS:
-                raise ValueError(f"{t.id}: unknown or missing tool_name {t.tool_name!r}")
+                raise ValueError(
+                    f"{t.id}: unknown or missing tool_name {t.tool_name!r}"
+                )
+
+            if t.reasoning_role is not None:
+                raise ValueError(
+                    f"{t.id}: tool-call tasks must not set reasoning_role"
+                )
+
             resolved_name, arg_fn = _TOOL_BINDINGS[t.tool_name]
+
             meta[t.id] = SubtaskMeta(
                 kind=SubtaskKind.TOOL_CALL,
                 tool_name=resolved_name,
-                build_args=lambda sid, outs, _fn=arg_fn: _fn(sid, outs, shipment_id, customer_id),
+                build_args=lambda sid, outs, _fn=arg_fn: _fn(
+                    sid,
+                    outs,
+                    shipment_id,
+                    customer_id,
+                ),
             )
+
         else:
+            if t.tool_name is not None or t.reasoning_role is None:
+                raise ValueError(
+                    f"{t.id}: reasoning tasks require reasoning_role "
+                    "and must not set tool_name"
+                )
+
+            if t.reasoning_role is ReasoningRole.LINEAR:
+                # Linear evidence analysis -> Plan-and-Solve
+                needs_branching = False
+                high_stakes = False
+
+            elif t.reasoning_role is ReasoningRole.BRANCHING:
+                # Compare alternatives -> Tree of Thoughts
+                needs_branching = True
+                high_stakes = False
+
+            else:
+                # Final grounded high-stakes decision -> LATS
+                needs_branching = True
+                high_stakes = True
+
             meta[t.id] = SubtaskMeta(
                 kind=SubtaskKind.REASONING,
-                needs_branching=True,
-                high_stakes=True,
-                # Grounded validation becomes available once the tool_call
-                # lookups above have actually run -- the reasoning task is
-                # always the terminal node, so by the time it executes every
-                # dependency's real result is in context.
+                needs_branching=needs_branching,
+                high_stakes=high_stakes,
                 grounded_validation_available=True,
             )
 
