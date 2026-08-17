@@ -141,7 +141,6 @@ The draft violates or incompletely covers the grounded Swiftrail authority and o
 Single revision:
 
 ```text
-ACTION: check_shipment
 ACTION: check_customer
 ACTION: check_credit_hold
 ACTION: escalate role=finance_manager
@@ -178,13 +177,13 @@ This is the fixed case where one Self-Refine revision is insufficient but Reflex
 
 | Method | Success | Avg. LLM calls | Avg. tokens | Avg. latency | Est. cost/run | Avg. tool calls |
 |---|---:|---:|---:|---:|---:|---:|
-| Decomposition-first | 2/2 | 15 | 5508 | 3.984 ms | $0.001227 | 5 |
-| Dynamic decomposition | 1/2 | 10.5 | 5689 | 5.550 ms | $0.001001 | 3 |
-| Plan-and-Solve | 1/2 | 1 | 226.5 | 0.081 ms | $0.000039 | 0 |
-| Tree of Thoughts | 2/2 | 9 | 2386 | 0.849 ms | $0.000467 | 0 |
-| LATS ungrounded | 0/2 | 2 | 570.5 | 0.231 ms | $0.000120 | 0 |
-| LATS grounded | 2/2 | 4 | 1032.5 | 0.387 ms | $0.000200 | 0 |
-| Self-Refine | 1/2 | 2 | 548 | 0.358 ms | $0.000095 | 0 |
-| Reflexion | 2/2 | 3 | 566.5 | 0.247 ms | $0.000109 | 0 |
+| Decomposition-first | 2/2 | 15 | 5495 | 14.131 ms | $0.001225 | 5 |
+| Dynamic decomposition | 1/2 | 10.5 | 5674 | 45.374 ms | $0.000999 | 3 |
+| Plan-and-Solve | 1/2 | 1 | 226.5 | 0.124 ms | $0.000039 | 0 |
+| Tree of Thoughts | 2/2 | 9 | 2386 | 1.352 ms | $0.000467 | 0 |
+| LATS ungrounded | 0/2 | 2 | 570.5 | 0.360 ms | $0.000120 | 0 |
+| LATS grounded | 2/2 | 4 | 1032.5 | 0.660 ms | $0.000200 | 0 |
+| Self-Refine | 1/2 | 2 | 533.5 | 1.177 ms | $0.000092 | 0 |
+| Reflexion | 2/2 | 3 | 560 | 0.431 ms | $0.000108 | 0 |
 
 The benchmark uses the actual repository algorithms with deterministic scripted model responses. Token counts use a fixed local token proxy, latency is measured locally, and cost uses the repository's explicit illustrative accounting rates ($0.15/M input tokens and $0.60/M output tokens). No production-provider billing is claimed.
