@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 
 from planning.environment import Environment
-from planning.reflexion import reflexion
-from planning.self_refine import reflect_and_refine
+from planning.algorithms.reflexion import reflexion
+from planning.algorithms.self_refine import reflect_and_refine
 from planning_eval.evaluation_suite import fixed_cases
 
 

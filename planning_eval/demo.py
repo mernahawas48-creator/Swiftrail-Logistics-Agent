@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from planning.environment import Environment
 from planning_eval.evaluation_suite import fixed_cases
-from planning.reflexion import reflexion
+from planning.algorithms.reflexion import reflexion
 
 
 class Response:

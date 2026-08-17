@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from planning.environment import Environment
-from planning.self_refine import reflect_and_refine
+from planning.algorithms.self_refine import reflect_and_refine
 from planning_eval.evaluation_suite import fixed_cases
 from planning_eval.evaluate_self_correction import ScriptedLLM
 

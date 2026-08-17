@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from .environment import Environment
-from .reflexion import ReflexionResult, reflexion
-from .self_refine import ReflectionResult, reflect_and_refine
+from .algorithms.reflexion import ReflexionResult, reflexion
+from .algorithms.self_refine import ReflectionResult, reflect_and_refine
 
 
 _ID_RE = re.compile(r"\b(?:shipment|employee)\s*#?\s*(\d+)\b", re.I)
