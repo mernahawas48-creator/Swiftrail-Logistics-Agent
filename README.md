@@ -62,6 +62,107 @@ Solve      Thoughts  + grounded feedback
 The reference planning toolkit is adapted rather than reimplemented from scratch, while Swiftrail-specific prompts, routing, MCP/database grounding, and evaluation are added around the provided algorithm interfaces.
 
 
+### Reference Toolkit and Planning Concern Map
+
+The planning implementation is adapted from the required reference toolkit:
+
+```text
+https://github.com/AmrSheta22/task_decomposition_and_planning
+```
+
+The grader can locate each required planning concern directly:
+
+| Concern | Main implementation |
+|---|---|
+| DAG construction, acyclicity, topological execution | `planning/models.py`, `planning/algorithms/decomposition.py` |
+| Decomposition-first vs. dynamic/interleaved planning | `planning/algorithms/decomposition.py`, `planning/algorithms/dynamic_decomposition.py`, `planning/divergence.py` |
+| Plan-and-Solve | `planning/algorithms/plan_and_solve.py` |
+| Tree of Thoughts + beam/BFS-style pruning | `planning/algorithms/tree_of_thoughts.py` |
+| LATS / MCTS + branch reflection + backpropagation | `planning/algorithms/lats.py` |
+| PS / ToT / LATS routing | `planning/planning_router.py` |
+| Grounded external feedback | `planning/algorithms/environment.py`, `planning/swiftrail_validator.py` |
+| Self-Refine | `planning/algorithms/self_refine.py` |
+| Reflexion + capped episodic reflection memory | `planning/algorithms/reflexion.py`, `planning/episodic_buffer.py` |
+| Real MCP execution + post-write verification | `planning/execution_adapter.py`, `planning/action_executor.py` |
+| Planning-agent orchestration | `planning/orchestrator.py`, `planning/run_swiftrail.py` |
+| Fixed planning evaluation and artifacts | `planning_eval/`, `artifacts/` |
+
+### Current Offline Planning Validation
+
+The deterministic planning harness was rerun without API keys. The planning test suite passed **20/20 tests**, including DAG cycle rejection, decomposition divergence, PS/ToT/LATS routing, grounded validation, safe action verification, Self-Refine, and Reflexion memory carry-over.
+
+The current offline evaluation produced these checks:
+
+| Check | Result |
+|---|---|
+| Decomposition-first stable case | PASS — no divergence |
+| Dynamic severe-hold case | PASS — divergence detected |
+| Linear reasoning routed to Plan-and-Solve | PASS |
+| Branching reasoning routed to Tree of Thoughts | PASS |
+| High-stakes grounded reasoning routed to LATS | PASS |
+| Ungrounded severe-hold plan accepted by baseline | YES |
+| Same severe-hold plan rejected by grounded validator | YES |
+| Self-Refine grounded revision | PASS |
+| Reflexion cross-trial reflection carry-over | PASS |
+
+For the severe-credit-hold case, the ungrounded baseline accepted the unsafe candidate, while the grounded validator rejected it with score **0.4** because a `sales_rep` cannot release a severe hold, finance-manager escalation was missing, `check_rate_exception` was missing, and the shipment remained blocked by the hold.
+
+Current scripted self-correction measurements:
+
+| Case | Method | Success | LLM calls | Total tokens |
+|---|---|---:|---:|---:|
+| `severe_hold_sales_rep` | Self-Refine (grounded) | 100% | 2 | 327 |
+| `severe_hold_sales_rep` | Reflexion (grounded) | 100% | 3 | 326 |
+| `above_authority_rate` | Self-Refine (grounded) | 100% | 2 | 271 |
+| `above_authority_rate` | Reflexion (grounded) | 100% | 3 | 294 |
+
+These offline checks validate structure and deterministic behavior. Provider latency, provider token accounting, estimated production cost, and the full cross-method quality comparison must come from the final fixed-suite benchmark rather than being invented from the offline harness.
+
+
+### Final Planning Cost / Quality Benchmark
+
+The fixed benchmark executes the repository's actual decomposition, Plan-and-Solve, Tree of Thoughts, LATS, Self-Refine, and Reflexion loops against Swiftrail seed-data-shaped requests. It uses deterministic scripted model responses so the comparison is reproducible without an API key. Token counts are a fixed local proxy, latency is measured locally, and estimated cost uses the same explicit local accounting rates already used by the planning evaluator ($0.15/M input tokens and $0.60/M output tokens).
+
+| Method | Success | Avg. LLM calls | Avg. tokens | Avg. latency | Est. cost/run | Avg. tool calls |
+|---|---:|---:|---:|---:|---:|---:|
+| Decomposition-first | 2/2 | 15 | 5508 | 3.984 ms | $0.001227 | 5 |
+| Dynamic decomposition | 1/2 | 10.5 | 5689 | 5.550 ms | $0.001001 | 3 |
+| Plan-and-Solve | 1/2 | 1 | 226.5 | 0.081 ms | $0.000039 | 0 |
+| Tree of Thoughts | 2/2 | 9 | 2386 | 0.849 ms | $0.000467 | 0 |
+| LATS ungrounded | 0/2 | 2 | 570.5 | 0.231 ms | $0.000120 | 0 |
+| LATS grounded | 2/2 | 4 | 1032.5 | 0.387 ms | $0.000200 | 0 |
+| Self-Refine | 1/2 | 2 | 548 | 0.358 ms | $0.000095 | 0 |
+| Reflexion | 2/2 | 3 | 566.5 | 0.247 ms | $0.000109 | 0 |
+
+The fixed cases satisfy the required method-selection evidence:
+
+- **Decomposition-first** is preferred when the required evidence checklist is stable: it completed the `stable_minor_hold` case, while the dynamic planner stopped before all required evidence was gathered and failed grounded validation.
+- **Dynamic decomposition** earns its extra decision overhead on the severe-hold case: after three real-shaped reads, the deterministic severe-hold rule forces finance-manager escalation instead of continuing the original sequence.
+- **Plan-and-Solve** is the cheapest correct choice for the linear stable case (1 LLM call).
+- **Tree of Thoughts** is selected for lookahead: on the 25% rate-exception case, Plan-and-Solve failed while ToT searched alternatives and returned the safe finance-manager escalation branch.
+- **Grounded LATS** succeeded on both planning cases; the randomized ungrounded LATS accepted unsafe branches that the real validator rejected.
+- **Self-Refine** remains the cheaper local correction when one revision is enough. On the fixed severe-hold cross-trial case, its single revision still failed, while **Reflexion** succeeded on trial 2 by carrying the grounded failure lesson forward.
+
+Full benchmark artifacts:
+
+```text
+artifacts/full_planning_benchmark.json
+artifacts/full_planning_benchmark.md
+artifacts/full_planning_benchmark_summary.json
+```
+
+Run the fixed benchmark with:
+
+```powershell
+python -m planning_eval.full_benchmark
+```
+
+The complete planning demo transcript generated from the same fixed run is:
+
+```text
+demo/planning_demo_transcript.md
+```
+
 ## Memory System
 
 ### Problem
@@ -279,6 +380,7 @@ demo/               Captured MCP and RAG/Self-RAG demo evidence
 mcp_server/         FastMCP server, schemas, tools, resources, prompts
 memory/             Short-term, episodic, semantic memory and verified recall
 planning/           Decomposition, PS/ToT/LATS planning, self-correction, and grounding interfaces
+planning_eval/      Fixed planning, grounding, self-correction, and comparison evaluation
 rag/                Corpus, ingestion, vector store, RAG architectures, verification
 retrieval_eval/     Fixed end-to-end architecture evaluation
 ```
@@ -366,6 +468,40 @@ python -m retrieval_eval.evaluate_architectures
 
 Do not edit `retrieval_eval/questions.json` between architecture runs.
 
+
+Planning Agent — decomposition-first:
+
+```powershell
+python -m planning.run_swiftrail --shipment-id 3 --customer-id 3 --employee-id 1
+```
+
+Planning Agent — dynamic/interleaved decomposition:
+
+```powershell
+python -m planning.run_swiftrail --shipment-id 3 --customer-id 3 --employee-id 1 --method dynamic
+```
+
+The planning agent is a separate sibling agent. It authenticates through the existing `agent/client.py`, reuses the same MCP server and MySQL database, and does not replace the Memory/RAG agent path.
+
+Offline planning evaluation:
+
+```powershell
+python -m planning_eval.final_evaluation
+```
+
+Full planning cost/quality benchmark and generated demo transcript:
+
+```powershell
+python -m planning_eval.full_benchmark
+```
+
+The generated planning-evaluation artifacts are:
+
+```text
+artifacts/final_planning_evaluation.json
+artifacts/final_planning_evaluation.md
+```
+
 ## Tests
 
 ```powershell
@@ -374,6 +510,8 @@ python -m pytest context_eval -q
 python -m pytest rag\tests -q
 python -m pytest retrieval_eval\test_evaluate_architectures.py -q
 python -m pytest agent -q
+python -m pytest planning -q
+python -m pytest planning_eval -q
 ```
 
 Integration tests that depend on MySQL or Qdrant require those services to be running.
@@ -385,4 +523,28 @@ The captured protocol demo and RAG/Self-RAG evidence are documented in:
 ```text
 demo/demo_transcript.md
 ```
+
+The complete planning demo transcript is documented in:
+
+```text
+demo/planning_demo_transcript.md
+```
+
+
+Planning evidence currently generated by the fixed offline harness is stored under:
+
+```text
+artifacts/final_planning_evaluation.json
+artifacts/final_planning_evaluation.md
+artifacts/severe_hold_sales_rep_grounding.json
+artifacts/severe_hold_sales_rep_self_refine.json
+artifacts/severe_hold_sales_rep_reflexion.json
+artifacts/above_authority_rate_grounding.json
+artifacts/above_authority_rate_self_refine.json
+artifacts/above_authority_rate_reflexion.json
+```
+
+A final planning demo should show the same real request decomposed both ways, the divergence point, one routed sub-task for each of Plan-and-Solve / Tree of Thoughts / LATS, a Self-Refine revision, Reflexion memory carried into the next trial, and the grounded validator rejecting a failure that an ungrounded critique accepts.
+
+This requirement is now captured in `demo/planning_demo_transcript.md`, generated by the fixed full benchmark.
 
