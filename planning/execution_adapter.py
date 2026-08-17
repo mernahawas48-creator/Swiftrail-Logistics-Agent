@@ -111,7 +111,10 @@ class SubtaskExecutionAdapter:
             raise ValueError(f"{task_id}: TOOL_CALL sub-task is missing tool_name/build_args")
 
         args = meta.build_args(self.session_id, outputs_so_far)
-        result = await self.agent.call_tool(meta.tool_name, args)
+        result = await self.agent.call_tool(
+            meta.tool_name,
+            {"request": args},
+        )
         payload = self.agent.decode_tool_result(result)
         if not isinstance(payload, dict):
             raise SubtaskExecutionError(task_id, meta.tool_name, "MALFORMED_RESPONSE", str(payload))
