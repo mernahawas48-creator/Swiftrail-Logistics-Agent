@@ -121,6 +121,7 @@ async def dynamic_decompose_blocked_shipment(
     llm: BaseChatModel,
     call_tool: Callable[[str, dict], Awaitable[dict]],
     max_steps: int = 6,
+    environment=None,
 ) -> list[DynamicStep]:
     """Interleaved decomposition. ``call_tool`` is injected (rather than
     importing planning.execution_adapter directly) so this module has no
@@ -186,24 +187,35 @@ async def dynamic_decompose_blocked_shipment(
                 break
             continue
 
-        # Reasoning step: synthesize/escalate using everything observed, then
-        # stop -- mirrors the single terminal synthesis node in the static
-        # plan, but here it only ever runs once real evidence exists.
+        # Reasoning step: route the sub-task through the shared planning router.
+        # Local import avoids an import cycle with the algorithms package.
+        from ..planning_router import PlanningProfile, solve_subtask
+
         context = json.dumps(observed, default=str)
-        response = llm.invoke([
-            ("system", "Produce the resolution sequence for this Swiftrail request, grounded only in the observed tool results below."),
-            ("human", f"Goal: {goal}\nInstruction: {decision.instruction}\nObserved:\n{context}"),
-        ], temperature=0.2)
-        text = response.content
-        if not isinstance(text, str) or not text.strip():
-            raise RuntimeError("The chat model returned an empty or unsupported response")
+
+        profile = PlanningProfile(
+            instruction=(
+                decision.instruction
+                or "Produce the final safe Swiftrail resolution sequence."
+            ),
+            context=f"Goal: {goal}\nObserved tool results:\n{context}",
+            needs_branching=True,
+            high_stakes=True,
+            grounded_validation_available=environment is not None,
+        )
+
+        routed = solve_subtask(
+            profile,
+            llm,
+            environment=environment,
+        )
         steps.append(
             DynamicStep(
                 step=step_no,
                 kind=SubtaskKind.REASONING,
                 tool_name=None,
                 instruction=decision.instruction,
-                output=text.strip(),
+                output=routed.output,
                 forced=forced is not None,
             )
         )

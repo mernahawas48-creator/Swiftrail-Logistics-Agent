@@ -103,6 +103,7 @@ class SwiftrailPlanningOrchestrator:
             session_id=self.session_id,
             llm=self.llm,
             call_tool=call_tool,
+            environment=self.environment,
         )
         result = steps[-1].output if steps else "No steps were executed."
         # Roughly one LLM call per non-forced decision, plus the final
@@ -136,6 +137,7 @@ class SwiftrailPlanningOrchestrator:
             session_id=self.session_id,
             llm=self.llm,
             call_tool=call_tool,
+            environment=self.environment,
         )
         divergence = compute_divergence(static_plan, dynamic_steps)
         artifact = log_divergence(divergence)
