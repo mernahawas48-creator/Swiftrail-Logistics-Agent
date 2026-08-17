@@ -1,0 +1,143 @@
+{
+  "evaluation_mode": "deterministic offline evaluation without API keys",
+  "decomposition_first_vs_dynamic": [
+    {
+      "case": "stable_evidence",
+      "preferred_method": "decomposition_first",
+      "diverged": false,
+      "static_tool_sequence": [
+        "get_shipment_status",
+        "search_customer",
+        "list_customer_credit_holds"
+      ],
+      "dynamic_tool_sequence": [
+        "get_shipment_status",
+        "search_customer",
+        "list_customer_credit_holds"
+      ],
+      "reason": "No observation changed the planned sequence, so an up-front DAG is sufficient."
+    },
+    {
+      "case": "severe_hold_discovered",
+      "preferred_method": "dynamic",
+      "diverged": true,
+      "static_tool_sequence": [
+        "get_shipment_status",
+        "search_customer",
+        "list_customer_credit_holds"
+      ],
+      "dynamic_tool_sequence": [
+        "get_shipment_status",
+        "list_customer_credit_holds"
+      ],
+      "divergence_point": 2,
+      "reason": "A severe active credit hold was observed after 2 lookup(s); dynamic decomposition escalated immediately instead of continuing the remaining planned lookups ['list_customer_credit_holds'] that decomposition-first would have executed anyway before its single terminal reasoning task ever saw the hold."
+    }
+  ],
+  "ps_vs_tot_vs_lats_routing": [
+    {
+      "case": "linear_evidence_synthesis",
+      "expected_method": "plan_and_solve",
+      "selected_method": "plan_and_solve",
+      "correct_route": true,
+      "rationale": "The sub-task is primarily linear reasoning with no genuine need to search competing branches, so Plan-and-Solve is the simplest suitable method."
+    },
+    {
+      "case": "compare_resolution_alternatives",
+      "expected_method": "tree_of_thoughts",
+      "selected_method": "tree_of_thoughts",
+      "correct_route": true,
+      "rationale": "The sub-task needs lookahead across multiple plausible reasoning paths, but it does not require the full grounded MCTS loop, so Tree of Thoughts is appropriate."
+    },
+    {
+      "case": "high_stakes_final_decision",
+      "expected_method": "lats",
+      "selected_method": "lats",
+      "correct_route": true,
+      "rationale": "The sub-task has multiple plausible branches, a costly wrong choice, and grounded external feedback is available, so LATS can search alternatives and validate them against the real environment."
+    }
+  ],
+  "grounded_vs_ungrounded": [
+    {
+      "case": "severe_hold_sales_rep",
+      "ungrounded_bad_candidate_accepted": true,
+      "grounded_bad_candidate_accepted": false,
+      "grounded_bad_score": 0.4,
+      "grounded_issues": [
+        "Blocked shipment plan is missing required observations: check_rate_exception.",
+        "Sales representatives cannot release a severe credit hold; escalation to finance_manager is required.",
+        "An active severe credit hold requires escalation to finance_manager before release.",
+        "The shipment cannot be safely released while the customer remains on credit hold."
+      ],
+      "grounded_good_candidate_accepted": true,
+      "grounded_good_score": 1.0,
+      "grounding_caught_false_positive": true
+    },
+    {
+      "case": "above_authority_rate",
+      "ungrounded_bad_candidate_accepted": true,
+      "grounded_bad_candidate_accepted": false,
+      "grounded_bad_score": 0.7,
+      "grounded_issues": [
+        "Above-15% rate exceptions require a finance_manager; the current sales_rep cannot approve them.",
+        "The pending above-authority rate exception requires finance_manager escalation."
+      ],
+      "grounded_good_candidate_accepted": true,
+      "grounded_good_score": 1.0,
+      "grounding_caught_false_positive": true
+    }
+  ],
+  "self_refine_vs_reflexion": [
+    {
+      "method": "Self-Refine (grounded)",
+      "success": true,
+      "llm_calls": 2,
+      "input_tokens": 300,
+      "output_tokens": 27,
+      "latency_ms": 0.35900005605071783,
+      "estimated_cost_usd": 0.0,
+      "total_tokens": 327,
+      "case": "severe_hold_sales_rep"
+    },
+    {
+      "method": "Reflexion (grounded)",
+      "success": true,
+      "llm_calls": 3,
+      "input_tokens": 287,
+      "output_tokens": 39,
+      "latency_ms": 0.1303000026382506,
+      "estimated_cost_usd": 0.0,
+      "total_tokens": 326,
+      "case": "severe_hold_sales_rep"
+    },
+    {
+      "method": "Self-Refine (grounded)",
+      "success": true,
+      "llm_calls": 2,
+      "input_tokens": 248,
+      "output_tokens": 23,
+      "latency_ms": 0.10010000551119447,
+      "estimated_cost_usd": 0.0,
+      "total_tokens": 271,
+      "case": "above_authority_rate"
+    },
+    {
+      "method": "Reflexion (grounded)",
+      "success": true,
+      "llm_calls": 3,
+      "input_tokens": 269,
+      "output_tokens": 25,
+      "latency_ms": 0.09079999290406704,
+      "estimated_cost_usd": 0.0,
+      "total_tokens": 294,
+      "case": "above_authority_rate"
+    }
+  ],
+  "checks": {
+    "decomposition_cases_pass": true,
+    "all_router_cases_pass": true,
+    "all_grounding_cases_pass": true,
+    "all_self_correction_cases_pass": true
+  },
+  "production_note": "Real provider latency, token usage, and billing must come from a live model run. This offline evaluation does not invent production metrics."
+}
