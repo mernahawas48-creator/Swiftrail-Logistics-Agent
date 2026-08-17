@@ -977,7 +977,6 @@ async def run_benchmark() -> tuple[list[BenchmarkRow], dict[str, Any]]:
     # Hard correction: the single Self-Refine revision is still incomplete;
     # Reflexion carries the grounded lesson into a second whole-task trial.
     still_bad = (
-        "ACTION: check_shipment\n"
         "ACTION: check_customer\n"
         "ACTION: check_credit_hold\n"
         "ACTION: escalate role=finance_manager"

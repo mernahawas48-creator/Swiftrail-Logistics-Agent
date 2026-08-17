@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import shlex
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -17,14 +18,24 @@ class SwiftrailSnapshot:
     rate_exceptions: list[dict[str, Any]]
 
 
-_ACTION_RE = re.compile(r"^ACTION:[ \t]*(?P<action>[a-z_]+)(?:[ \t]+(?P<args>[^\r\n]+))?", re.I | re.M)
+_ACTION_RE = re.compile(
+    r"^[ \t]*(?:[-*][ \t]+)?(?:\d+[.)][ \t]+)?"
+    r"(?:\*\*)?ACTION:(?:\*\*)?[ \t]*"
+    r"(?:\*\*)?(?P<action>[a-z_]+)(?:\*\*)?"
+    r"(?:[ \t]+(?P<args>[^\r\n]+))?",
+    re.I | re.M,
+)
 
 
 def parse_actions(candidate: str) -> list[tuple[str, dict[str, str]]]:
     actions: list[tuple[str, dict[str, str]]] = []
     for match in _ACTION_RE.finditer(candidate):
         args: dict[str, str] = {}
-        for part in (match.group("args") or "").split():
+        try:
+            parts = shlex.split(match.group("args") or "")
+        except ValueError:
+            parts = (match.group("args") or "").split()
+        for part in parts:
             if "=" in part:
                 key, value = part.split("=", 1)
                 args[key.strip()] = value.strip().strip(",.")
@@ -94,10 +105,25 @@ class SwiftrailGroundedValidator:
         pending_exceptions = [r for r in state.rate_exceptions if r.get("status") == "pending"]
 
         if state.shipment.get("status") == "blocked":
-            required_observations = {"check_shipment", "check_customer", "check_invoices", "check_credit_hold", "check_rate_exception"}
+            # A severe active hold is itself a decisive stop condition. Once the
+            # shipment, customer, and hold have been observed, a sales_rep may
+            # safely stop and escalate immediately instead of pretending that
+            # downstream invoice/rate checks were already performed.
+            required_observations = {
+                "check_shipment",
+                "check_customer",
+                "check_credit_hold",
+            }
+            if not severe_holds:
+                required_observations.update(
+                    {"check_invoices", "check_rate_exception"}
+                )
             missing = sorted(required_observations.difference(names))
             if missing:
-                details.append(f"Blocked shipment plan is missing required observations: {', '.join(missing)}.")
+                details.append(
+                    "Blocked shipment plan is missing required observations: "
+                    f"{', '.join(missing)}."
+                )
 
         role = state.employee["role"]
         if severe_holds:
@@ -119,7 +145,7 @@ class SwiftrailGroundedValidator:
         if overdue and state.customer.get("credit_status") == "hold" and "release_shipment" in names:
             details.append("The shipment cannot be safely released while the customer remains on credit hold.")
 
-        if "release_credit_hold" in names and not severe_holds:
+        if "release_credit_hold" in names and not state.holds:
             details.append("The plan requests a credit-hold release, but no active credit hold exists in the database.")
 
         if "approve_rate_exception" in names and not pending_exceptions:

@@ -1,0 +1,1614 @@
+{
+  "benchmark_mode": "live_mistral_fixed_swiftrail_snapshots",
+  "model": "mistral-small-latest",
+  "token_accounting": "provider-reported LangChain AIMessage usage_metadata",
+  "pricing": {
+    "tier": "standard",
+    "input_usd_per_million": 0.15,
+    "output_usd_per_million": 0.6
+  },
+  "scope_note": "The LLM calls are live provider calls. Direct planning/self-correction methods receive the same fixed Swiftrail snapshot and authoritative policy text; decomposition methods still execute the fixed fake MCP tool observations. A common ACTION output contract is supplied so the grounded validator measures decision quality rather than provider-specific Markdown formatting. No database writes are performed.",
+  "rows": [
+    {
+      "group": "decomposition",
+      "case": "stable_minor_hold",
+      "method": "Decomposition-first",
+      "success": true,
+      "llm_calls": 13,
+      "input_tokens": 8613,
+      "output_tokens": 2717,
+      "total_tokens": 11330,
+      "latency_ms": 22278.399,
+      "estimated_cost_usd": 0.00292215,
+      "tool_calls": 5,
+      "error": null
+    },
+    {
+      "group": "decomposition",
+      "case": "stable_minor_hold",
+      "method": "Dynamic decomposition",
+      "success": false,
+      "llm_calls": 6,
+      "input_tokens": 3439,
+      "output_tokens": 572,
+      "total_tokens": 4011,
+      "latency_ms": 6851.85,
+      "estimated_cost_usd": 0.00085905,
+      "tool_calls": 6,
+      "error": null
+    },
+    {
+      "group": "decomposition",
+      "case": "severe_hold_sales_rep",
+      "method": "Decomposition-first",
+      "success": true,
+      "llm_calls": 15,
+      "input_tokens": 10648,
+      "output_tokens": 2742,
+      "total_tokens": 13390,
+      "latency_ms": 24409.954,
+      "estimated_cost_usd": 0.0032424,
+      "tool_calls": 5,
+      "error": null
+    },
+    {
+      "group": "decomposition",
+      "case": "severe_hold_sales_rep",
+      "method": "Dynamic decomposition",
+      "success": true,
+      "llm_calls": 5,
+      "input_tokens": 2755,
+      "output_tokens": 369,
+      "total_tokens": 3124,
+      "latency_ms": 5058.14,
+      "estimated_cost_usd": 0.00063465,
+      "tool_calls": 3,
+      "error": null
+    },
+    {
+      "group": "planning",
+      "case": "stable_minor_hold",
+      "method": "Plan-and-Solve",
+      "success": true,
+      "llm_calls": 1,
+      "input_tokens": 1099,
+      "output_tokens": 186,
+      "total_tokens": 1285,
+      "latency_ms": 1633.471,
+      "estimated_cost_usd": 0.00027645,
+      "tool_calls": 0,
+      "error": null
+    },
+    {
+      "group": "planning",
+      "case": "stable_minor_hold",
+      "method": "Tree of Thoughts",
+      "success": false,
+      "llm_calls": 9,
+      "input_tokens": 8776,
+      "output_tokens": 1009,
+      "total_tokens": 9785,
+      "latency_ms": 11486.715,
+      "estimated_cost_usd": 0.0019218,
+      "tool_calls": 0,
+      "error": null
+    },
+    {
+      "group": "planning",
+      "case": "stable_minor_hold",
+      "method": "LATS ungrounded",
+      "success": true,
+      "llm_calls": 2,
+      "input_tokens": 2034,
+      "output_tokens": 82,
+      "total_tokens": 2116,
+      "latency_ms": 1682.6,
+      "estimated_cost_usd": 0.0003543,
+      "tool_calls": 0,
+      "error": null
+    },
+    {
+      "group": "planning",
+      "case": "stable_minor_hold",
+      "method": "LATS grounded",
+      "success": true,
+      "llm_calls": 2,
+      "input_tokens": 2031,
+      "output_tokens": 78,
+      "total_tokens": 2109,
+      "latency_ms": 1847.554,
+      "estimated_cost_usd": 0.00035145,
+      "tool_calls": 0,
+      "error": null
+    },
+    {
+      "group": "planning",
+      "case": "above_authority_rate",
+      "method": "Plan-and-Solve",
+      "success": true,
+      "llm_calls": 1,
+      "input_tokens": 1004,
+      "output_tokens": 146,
+      "total_tokens": 1150,
+      "latency_ms": 3009.653,
+      "estimated_cost_usd": 0.0002382,
+      "tool_calls": 0,
+      "error": null
+    },
+    {
+      "group": "planning",
+      "case": "above_authority_rate",
+      "method": "Tree of Thoughts",
+      "success": true,
+      "llm_calls": 9,
+      "input_tokens": 8054,
+      "output_tokens": 1026,
+      "total_tokens": 9080,
+      "latency_ms": 11520.723,
+      "estimated_cost_usd": 0.0018237,
+      "tool_calls": 0,
+      "error": null
+    },
+    {
+      "group": "planning",
+      "case": "above_authority_rate",
+      "method": "LATS ungrounded",
+      "success": true,
+      "llm_calls": 2,
+      "input_tokens": 1844,
+      "output_tokens": 85,
+      "total_tokens": 1929,
+      "latency_ms": 1616.633,
+      "estimated_cost_usd": 0.0003276,
+      "tool_calls": 0,
+      "error": null
+    },
+    {
+      "group": "planning",
+      "case": "above_authority_rate",
+      "method": "LATS grounded",
+      "success": true,
+      "llm_calls": 2,
+      "input_tokens": 1841,
+      "output_tokens": 77,
+      "total_tokens": 1918,
+      "latency_ms": 1522.242,
+      "estimated_cost_usd": 0.00032235,
+      "tool_calls": 0,
+      "error": null
+    },
+    {
+      "group": "self_correction",
+      "case": "above_authority_rate",
+      "method": "Self-Refine",
+      "success": true,
+      "llm_calls": 2,
+      "input_tokens": 1863,
+      "output_tokens": 71,
+      "total_tokens": 1934,
+      "latency_ms": 1616.13,
+      "estimated_cost_usd": 0.00032205,
+      "tool_calls": 0,
+      "error": null
+    },
+    {
+      "group": "self_correction",
+      "case": "above_authority_rate",
+      "method": "Reflexion",
+      "success": true,
+      "llm_calls": 1,
+      "input_tokens": 1005,
+      "output_tokens": 48,
+      "total_tokens": 1053,
+      "latency_ms": 1194.49,
+      "estimated_cost_usd": 0.00017955,
+      "tool_calls": 0,
+      "error": null
+    },
+    {
+      "group": "self_correction",
+      "case": "severe_hold_sales_rep",
+      "method": "Self-Refine",
+      "success": true,
+      "llm_calls": 2,
+      "input_tokens": 2295,
+      "output_tokens": 198,
+      "total_tokens": 2493,
+      "latency_ms": 2340.543,
+      "estimated_cost_usd": 0.00046305,
+      "tool_calls": 0,
+      "error": null
+    },
+    {
+      "group": "self_correction",
+      "case": "severe_hold_sales_rep",
+      "method": "Reflexion",
+      "success": true,
+      "llm_calls": 1,
+      "input_tokens": 1096,
+      "output_tokens": 48,
+      "total_tokens": 1144,
+      "latency_ms": 650.145,
+      "estimated_cost_usd": 0.0001932,
+      "tool_calls": 0,
+      "error": null
+    }
+  ],
+  "aggregate": [
+    {
+      "method": "Decomposition-first",
+      "success": "2/2",
+      "success_rate": 1.0,
+      "avg_llm_calls": 14,
+      "avg_input_tokens": 9630.5,
+      "avg_output_tokens": 2729.5,
+      "avg_total_tokens": 12360,
+      "avg_latency_ms": 23344.177,
+      "avg_estimated_cost_usd": 0.00308227,
+      "avg_tool_calls": 5
+    },
+    {
+      "method": "Dynamic decomposition",
+      "success": "1/2",
+      "success_rate": 0.5,
+      "avg_llm_calls": 5.5,
+      "avg_input_tokens": 3097,
+      "avg_output_tokens": 470.5,
+      "avg_total_tokens": 3567.5,
+      "avg_latency_ms": 5954.995,
+      "avg_estimated_cost_usd": 0.00074685,
+      "avg_tool_calls": 4.5
+    },
+    {
+      "method": "Plan-and-Solve",
+      "success": "2/2",
+      "success_rate": 1.0,
+      "avg_llm_calls": 1,
+      "avg_input_tokens": 1051.5,
+      "avg_output_tokens": 166,
+      "avg_total_tokens": 1217.5,
+      "avg_latency_ms": 2321.562,
+      "avg_estimated_cost_usd": 0.00025732,
+      "avg_tool_calls": 0
+    },
+    {
+      "method": "Tree of Thoughts",
+      "success": "1/2",
+      "success_rate": 0.5,
+      "avg_llm_calls": 9,
+      "avg_input_tokens": 8415,
+      "avg_output_tokens": 1017.5,
+      "avg_total_tokens": 9432.5,
+      "avg_latency_ms": 11503.719,
+      "avg_estimated_cost_usd": 0.00187275,
+      "avg_tool_calls": 0
+    },
+    {
+      "method": "LATS ungrounded",
+      "success": "2/2",
+      "success_rate": 1.0,
+      "avg_llm_calls": 2,
+      "avg_input_tokens": 1939,
+      "avg_output_tokens": 83.5,
+      "avg_total_tokens": 2022.5,
+      "avg_latency_ms": 1649.617,
+      "avg_estimated_cost_usd": 0.00034095,
+      "avg_tool_calls": 0
+    },
+    {
+      "method": "LATS grounded",
+      "success": "2/2",
+      "success_rate": 1.0,
+      "avg_llm_calls": 2,
+      "avg_input_tokens": 1936,
+      "avg_output_tokens": 77.5,
+      "avg_total_tokens": 2013.5,
+      "avg_latency_ms": 1684.898,
+      "avg_estimated_cost_usd": 0.0003369,
+      "avg_tool_calls": 0
+    },
+    {
+      "method": "Self-Refine",
+      "success": "2/2",
+      "success_rate": 1.0,
+      "avg_llm_calls": 2,
+      "avg_input_tokens": 2079,
+      "avg_output_tokens": 134.5,
+      "avg_total_tokens": 2213.5,
+      "avg_latency_ms": 1978.337,
+      "avg_estimated_cost_usd": 0.00039255,
+      "avg_tool_calls": 0
+    },
+    {
+      "method": "Reflexion",
+      "success": "2/2",
+      "success_rate": 1.0,
+      "avg_llm_calls": 1,
+      "avg_input_tokens": 1050.5,
+      "avg_output_tokens": 48,
+      "avg_total_tokens": 1098.5,
+      "avg_latency_ms": 922.317,
+      "avg_estimated_cost_usd": 0.00018638,
+      "avg_tool_calls": 0
+    }
+  ],
+  "details": {
+    "decomposition": {
+      "stable_minor_hold": {
+        "Decomposition-first": {
+          "final_output": "ACTION: check_shipment id=2\nACTION: check_customer name=Nile Grain Traders\nACTION: check_invoices customer=Nile Grain Traders\nACTION: check_credit_hold id=1\nACTION: check_rate_exception shipment_id=2\nACTION: escalate role=finance_manager",
+          "feedback": {
+            "success": true,
+            "score": 1.0,
+            "details": [],
+            "evidence": {
+              "employee": {
+                "id": 2,
+                "name": "Mona Khalil",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 2,
+                "customer_id": 2,
+                "status": "blocked",
+                "base_rate": 62000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 2,
+                "customer_name": "Nile Grain Traders",
+                "credit_limit": 300000,
+                "balance_due": 45000,
+                "credit_status": "hold"
+              },
+              "active_holds": [
+                {
+                  "id": 1,
+                  "customer_id": 2,
+                  "severity": "minor",
+                  "status": "active"
+                }
+              ],
+              "invoices": [
+                {
+                  "id": 2,
+                  "customer_id": 2,
+                  "paid_status": "overdue",
+                  "days_overdue": 30,
+                  "amount": 45000
+                }
+              ],
+              "rate_exceptions": [
+                {
+                  "id": 3,
+                  "shipment_id": 2,
+                  "discount_pct": 30,
+                  "status": "rejected"
+                }
+              ],
+              "actions": [
+                [
+                  "check_shipment",
+                  {
+                    "id": "2"
+                  }
+                ],
+                [
+                  "check_customer",
+                  {
+                    "name": "Nile"
+                  }
+                ],
+                [
+                  "check_invoices",
+                  {
+                    "customer": "Nile"
+                  }
+                ],
+                [
+                  "check_credit_hold",
+                  {
+                    "id": "1"
+                  }
+                ],
+                [
+                  "check_rate_exception",
+                  {
+                    "shipment_id": "2"
+                  }
+                ],
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager"
+                  }
+                ]
+              ]
+            }
+          },
+          "tool_sequence": [
+            "search_customer",
+            "get_shipment_status",
+            "list_customer_credit_holds",
+            "list_customer_invoices",
+            "get_shipment_rate_exception"
+          ],
+          "execution_batches": [
+            [
+              "fetch_customer_2",
+              "fetch_shipment_2"
+            ],
+            [
+              "fetch_credit_holds_2",
+              "fetch_invoices_2",
+              "fetch_rate_exception_2"
+            ],
+            [
+              "summarize_blockers"
+            ],
+            [
+              "compare_resolutions"
+            ],
+            [
+              "finalize_plan"
+            ]
+          ],
+          "routes": [
+            "plan_and_solve",
+            "tree_of_thoughts",
+            "lats"
+          ]
+        },
+        "Dynamic decomposition": {
+          "final_output": "{\"success\": true, \"code\": \"BENCHMARK_OK\", \"message\": \"ok\", \"data\": {\"shipment_id\": 2, \"rate_exception\": {\"id\": 3, \"shipment_id\": 2, \"discount_pct\": 30, \"status\": \"rejected\"}}}",
+          "feedback": {
+            "success": false,
+            "score": 0.7,
+            "details": [
+              "No explicit ACTION lines were found; the plan cannot be validated safely.",
+              "Blocked shipment plan is missing required observations: check_credit_hold, check_customer, check_invoices, check_rate_exception, check_shipment."
+            ],
+            "evidence": {
+              "employee": {
+                "id": 2,
+                "name": "Mona Khalil",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 2,
+                "customer_id": 2,
+                "status": "blocked",
+                "base_rate": 62000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 2,
+                "customer_name": "Nile Grain Traders",
+                "credit_limit": 300000,
+                "balance_due": 45000,
+                "credit_status": "hold"
+              },
+              "active_holds": [
+                {
+                  "id": 1,
+                  "customer_id": 2,
+                  "severity": "minor",
+                  "status": "active"
+                }
+              ],
+              "invoices": [
+                {
+                  "id": 2,
+                  "customer_id": 2,
+                  "paid_status": "overdue",
+                  "days_overdue": 30,
+                  "amount": 45000
+                }
+              ],
+              "rate_exceptions": [
+                {
+                  "id": 3,
+                  "shipment_id": 2,
+                  "discount_pct": 30,
+                  "status": "rejected"
+                }
+              ],
+              "actions": []
+            }
+          },
+          "tool_sequence": [
+            "get_shipment_status",
+            "search_customer",
+            "list_customer_credit_holds",
+            "list_customer_invoices",
+            "get_shipment_rate_exception",
+            "get_shipment_rate_exception"
+          ],
+          "forced_steps": [],
+          "steps": [
+            {
+              "step": 1,
+              "kind": "tool_call",
+              "tool_name": "get_shipment_status",
+              "instruction": null,
+              "forced": false
+            },
+            {
+              "step": 2,
+              "kind": "tool_call",
+              "tool_name": "search_customer",
+              "instruction": null,
+              "forced": false
+            },
+            {
+              "step": 3,
+              "kind": "tool_call",
+              "tool_name": "list_customer_credit_holds",
+              "instruction": null,
+              "forced": false
+            },
+            {
+              "step": 4,
+              "kind": "tool_call",
+              "tool_name": "list_customer_invoices",
+              "instruction": null,
+              "forced": false
+            },
+            {
+              "step": 5,
+              "kind": "tool_call",
+              "tool_name": "get_shipment_rate_exception",
+              "instruction": null,
+              "forced": false
+            },
+            {
+              "step": 6,
+              "kind": "tool_call",
+              "tool_name": "get_shipment_rate_exception",
+              "instruction": null,
+              "forced": false
+            }
+          ]
+        }
+      },
+      "severe_hold_sales_rep": {
+        "Decomposition-first": {
+          "final_output": "ACTION: check_rate_exception\nACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: escalate role=finance_manager\nACTION: check_credit_hold",
+          "feedback": {
+            "success": true,
+            "score": 1.0,
+            "details": [],
+            "evidence": {
+              "employee": {
+                "id": 1,
+                "name": "Youssef Adel",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 3,
+                "customer_id": 3,
+                "status": "blocked",
+                "base_rate": 140000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 3,
+                "customer_name": "Red Sea Steel Imports",
+                "credit_limit": 800000,
+                "balance_due": 210000,
+                "credit_status": "hold"
+              },
+              "active_holds": [
+                {
+                  "id": 2,
+                  "customer_id": 3,
+                  "severity": "severe",
+                  "status": "active"
+                }
+              ],
+              "invoices": [
+                {
+                  "id": 3,
+                  "customer_id": 3,
+                  "paid_status": "overdue",
+                  "days_overdue": 95,
+                  "amount": 130000
+                },
+                {
+                  "id": 4,
+                  "customer_id": 3,
+                  "paid_status": "overdue",
+                  "days_overdue": 91,
+                  "amount": 80000
+                }
+              ],
+              "rate_exceptions": [],
+              "actions": [
+                [
+                  "check_rate_exception",
+                  {}
+                ],
+                [
+                  "check_shipment",
+                  {}
+                ],
+                [
+                  "check_customer",
+                  {}
+                ],
+                [
+                  "check_invoices",
+                  {}
+                ],
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager"
+                  }
+                ],
+                [
+                  "check_credit_hold",
+                  {}
+                ]
+              ]
+            }
+          },
+          "tool_sequence": [
+            "search_customer",
+            "get_shipment_status",
+            "list_customer_credit_holds",
+            "list_customer_invoices",
+            "get_shipment_rate_exception"
+          ],
+          "execution_batches": [
+            [
+              "fetch_customer_3",
+              "fetch_shipment_3"
+            ],
+            [
+              "fetch_credit_holds_3",
+              "fetch_invoices_3",
+              "fetch_rate_exception_3"
+            ],
+            [
+              "summarize_blockers_and_constraints"
+            ],
+            [
+              "compare_resolution_sequences"
+            ],
+            [
+              "finalize_safe_plan"
+            ]
+          ],
+          "routes": [
+            "plan_and_solve",
+            "tree_of_thoughts",
+            "lats"
+          ]
+        },
+        "Dynamic decomposition": {
+          "final_output": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_credit_hold hold_id=2\nACTION: escalate role=finance_manager hold_id=2 reason=severe_credit_hold customer=Red_Sea_Steel_Imports credit_status=hold balance_due=210000 credit_limit=800000",
+          "feedback": {
+            "success": true,
+            "score": 1.0,
+            "details": [],
+            "evidence": {
+              "employee": {
+                "id": 1,
+                "name": "Youssef Adel",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 3,
+                "customer_id": 3,
+                "status": "blocked",
+                "base_rate": 140000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 3,
+                "customer_name": "Red Sea Steel Imports",
+                "credit_limit": 800000,
+                "balance_due": 210000,
+                "credit_status": "hold"
+              },
+              "active_holds": [
+                {
+                  "id": 2,
+                  "customer_id": 3,
+                  "severity": "severe",
+                  "status": "active"
+                }
+              ],
+              "invoices": [
+                {
+                  "id": 3,
+                  "customer_id": 3,
+                  "paid_status": "overdue",
+                  "days_overdue": 95,
+                  "amount": 130000
+                },
+                {
+                  "id": 4,
+                  "customer_id": 3,
+                  "paid_status": "overdue",
+                  "days_overdue": 91,
+                  "amount": 80000
+                }
+              ],
+              "rate_exceptions": [],
+              "actions": [
+                [
+                  "check_shipment",
+                  {}
+                ],
+                [
+                  "check_customer",
+                  {}
+                ],
+                [
+                  "check_credit_hold",
+                  {
+                    "hold_id": "2"
+                  }
+                ],
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager",
+                    "hold_id": "2",
+                    "reason": "severe_credit_hold",
+                    "customer": "Red_Sea_Steel_Imports",
+                    "credit_status": "hold",
+                    "balance_due": "210000",
+                    "credit_limit": "800000"
+                  }
+                ]
+              ]
+            }
+          },
+          "tool_sequence": [
+            "get_shipment_status",
+            "search_customer",
+            "list_customer_credit_holds"
+          ],
+          "forced_steps": [
+            4
+          ],
+          "steps": [
+            {
+              "step": 1,
+              "kind": "tool_call",
+              "tool_name": "get_shipment_status",
+              "instruction": null,
+              "forced": false
+            },
+            {
+              "step": 2,
+              "kind": "tool_call",
+              "tool_name": "search_customer",
+              "instruction": null,
+              "forced": false
+            },
+            {
+              "step": 3,
+              "kind": "tool_call",
+              "tool_name": "list_customer_credit_holds",
+              "instruction": null,
+              "forced": false
+            },
+            {
+              "step": 4,
+              "kind": "reasoning",
+              "tool_name": null,
+              "instruction": "A severe, active credit hold was found on this customer. Do not propose releasing it yourself. Produce an escalation to a finance manager naming the exact hold id and reason, and state which parts of the request (if any) remain safe to resolve without release, e.g. auto-approvable rate exceptions.",
+              "forced": true
+            }
+          ]
+        }
+      }
+    },
+    "planning": {
+      "stable_minor_hold": {
+        "Plan-and-Solve": {
+          "output": "PLAN:\n1. Verify the shipment details (id, status, rates).\n2. Verify the customer’s credit status and balance.\n3. Verify the overdue invoices and days overdue.\n4. Verify the active credit hold severity.\n5. Verify the rate exception status and discount percentage.\n6. Because the customer is on credit hold with overdue invoices, escalate to finance_manager for hold release.\n7. Because the rate exception is rejected and above 15 percent, escalate to finance_manager for approval.\n8. No further actions are safe for employee 2 (sales_rep).\n\nSOLUTION:\n\nACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: check_rate_exception\nACTION: escalate role=finance_manager\nACTION: escalate role=finance_manager",
+          "feedback": {
+            "success": true,
+            "score": 1.0,
+            "details": [],
+            "evidence": {
+              "employee": {
+                "id": 2,
+                "name": "Mona Khalil",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 2,
+                "customer_id": 2,
+                "status": "blocked",
+                "base_rate": 62000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 2,
+                "customer_name": "Nile Grain Traders",
+                "credit_limit": 300000,
+                "balance_due": 45000,
+                "credit_status": "hold"
+              },
+              "active_holds": [
+                {
+                  "id": 1,
+                  "customer_id": 2,
+                  "severity": "minor",
+                  "status": "active"
+                }
+              ],
+              "invoices": [
+                {
+                  "id": 2,
+                  "customer_id": 2,
+                  "paid_status": "overdue",
+                  "days_overdue": 30,
+                  "amount": 45000
+                }
+              ],
+              "rate_exceptions": [
+                {
+                  "id": 3,
+                  "shipment_id": 2,
+                  "discount_pct": 30,
+                  "status": "rejected"
+                }
+              ],
+              "actions": [
+                [
+                  "check_shipment",
+                  {}
+                ],
+                [
+                  "check_customer",
+                  {}
+                ],
+                [
+                  "check_invoices",
+                  {}
+                ],
+                [
+                  "check_credit_hold",
+                  {}
+                ],
+                [
+                  "check_rate_exception",
+                  {}
+                ],
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager"
+                  }
+                ],
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager"
+                  }
+                ]
+              ]
+            }
+          }
+        },
+        "Tree of Thoughts": {
+          "output": "Start\nACTION: check_credit_hold\nACTION: check_invoices\nACTION: check_rate_exception\nACTION: check_customer",
+          "model_score": 0.9,
+          "feedback": {
+            "success": false,
+            "score": 0.85,
+            "details": [
+              "Blocked shipment plan is missing required observations: check_shipment."
+            ],
+            "evidence": {
+              "employee": {
+                "id": 2,
+                "name": "Mona Khalil",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 2,
+                "customer_id": 2,
+                "status": "blocked",
+                "base_rate": 62000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 2,
+                "customer_name": "Nile Grain Traders",
+                "credit_limit": 300000,
+                "balance_due": 45000,
+                "credit_status": "hold"
+              },
+              "active_holds": [
+                {
+                  "id": 1,
+                  "customer_id": 2,
+                  "severity": "minor",
+                  "status": "active"
+                }
+              ],
+              "invoices": [
+                {
+                  "id": 2,
+                  "customer_id": 2,
+                  "paid_status": "overdue",
+                  "days_overdue": 30,
+                  "amount": 45000
+                }
+              ],
+              "rate_exceptions": [
+                {
+                  "id": 3,
+                  "shipment_id": 2,
+                  "discount_pct": 30,
+                  "status": "rejected"
+                }
+              ],
+              "actions": [
+                [
+                  "check_credit_hold",
+                  {}
+                ],
+                [
+                  "check_invoices",
+                  {}
+                ],
+                [
+                  "check_rate_exception",
+                  {}
+                ],
+                [
+                  "check_customer",
+                  {}
+                ]
+              ]
+            }
+          }
+        },
+        "LATS ungrounded": {
+          "output": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: check_rate_exception\nACTION: escalate role=finance_manager",
+          "search_reported_success": true,
+          "search_score": 0.5772,
+          "iterations": 1,
+          "feedback": {
+            "success": true,
+            "score": 1.0,
+            "details": [],
+            "evidence": {
+              "employee": {
+                "id": 2,
+                "name": "Mona Khalil",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 2,
+                "customer_id": 2,
+                "status": "blocked",
+                "base_rate": 62000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 2,
+                "customer_name": "Nile Grain Traders",
+                "credit_limit": 300000,
+                "balance_due": 45000,
+                "credit_status": "hold"
+              },
+              "active_holds": [
+                {
+                  "id": 1,
+                  "customer_id": 2,
+                  "severity": "minor",
+                  "status": "active"
+                }
+              ],
+              "invoices": [
+                {
+                  "id": 2,
+                  "customer_id": 2,
+                  "paid_status": "overdue",
+                  "days_overdue": 30,
+                  "amount": 45000
+                }
+              ],
+              "rate_exceptions": [
+                {
+                  "id": 3,
+                  "shipment_id": 2,
+                  "discount_pct": 30,
+                  "status": "rejected"
+                }
+              ],
+              "actions": [
+                [
+                  "check_shipment",
+                  {}
+                ],
+                [
+                  "check_customer",
+                  {}
+                ],
+                [
+                  "check_invoices",
+                  {}
+                ],
+                [
+                  "check_credit_hold",
+                  {}
+                ],
+                [
+                  "check_rate_exception",
+                  {}
+                ],
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager"
+                  }
+                ]
+              ]
+            }
+          }
+        },
+        "LATS grounded": {
+          "output": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: check_rate_exception\nACTION: escalate role=finance_manager",
+          "search_reported_success": true,
+          "search_score": 1.0,
+          "iterations": 1,
+          "feedback": {
+            "success": true,
+            "score": 1.0,
+            "details": [],
+            "evidence": {
+              "employee": {
+                "id": 2,
+                "name": "Mona Khalil",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 2,
+                "customer_id": 2,
+                "status": "blocked",
+                "base_rate": 62000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 2,
+                "customer_name": "Nile Grain Traders",
+                "credit_limit": 300000,
+                "balance_due": 45000,
+                "credit_status": "hold"
+              },
+              "active_holds": [
+                {
+                  "id": 1,
+                  "customer_id": 2,
+                  "severity": "minor",
+                  "status": "active"
+                }
+              ],
+              "invoices": [
+                {
+                  "id": 2,
+                  "customer_id": 2,
+                  "paid_status": "overdue",
+                  "days_overdue": 30,
+                  "amount": 45000
+                }
+              ],
+              "rate_exceptions": [
+                {
+                  "id": 3,
+                  "shipment_id": 2,
+                  "discount_pct": 30,
+                  "status": "rejected"
+                }
+              ],
+              "actions": [
+                [
+                  "check_shipment",
+                  {}
+                ],
+                [
+                  "check_customer",
+                  {}
+                ],
+                [
+                  "check_invoices",
+                  {}
+                ],
+                [
+                  "check_credit_hold",
+                  {}
+                ],
+                [
+                  "check_rate_exception",
+                  {}
+                ],
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager"
+                  }
+                ]
+              ]
+            }
+          }
+        }
+      },
+      "above_authority_rate": {
+        "Plan-and-Solve": {
+          "output": "PLAN\n1. Verify that the shipment, customer, invoices, credit hold, and rate exception are in the exact states provided in the snapshot.\n2. Confirm that the pending 25 % rate exception exceeds the sales_rep’s 15 % delegated authority.\n3. Escalate the rate-exception approval to a finance_manager as required by policy.\n4. (No hold-release or shipment-release is allowed until finance_manager approval is obtained.)\n\nSOLUTION\nACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: check_rate_exception\nACTION: escalate role=finance_manager",
+          "feedback": {
+            "success": true,
+            "score": 1.0,
+            "details": [],
+            "evidence": {
+              "employee": {
+                "id": 1,
+                "name": "Youssef Adel",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 5,
+                "customer_id": 1,
+                "status": "pending",
+                "base_rate": 95000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 1,
+                "customer_name": "Delta Textiles Co.",
+                "credit_limit": 500000,
+                "balance_due": 12000,
+                "credit_status": "good"
+              },
+              "active_holds": [],
+              "invoices": [],
+              "rate_exceptions": [
+                {
+                  "id": 2,
+                  "shipment_id": 5,
+                  "discount_pct": 25,
+                  "status": "pending"
+                }
+              ],
+              "actions": [
+                [
+                  "check_shipment",
+                  {}
+                ],
+                [
+                  "check_customer",
+                  {}
+                ],
+                [
+                  "check_invoices",
+                  {}
+                ],
+                [
+                  "check_credit_hold",
+                  {}
+                ],
+                [
+                  "check_rate_exception",
+                  {}
+                ],
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager"
+                  }
+                ]
+              ]
+            }
+          }
+        },
+        "Tree of Thoughts": {
+          "output": "Start\ncheck_shipment shipment_id=5\ncheck_invoices customer_id=1\ncheck_rate_exception exception_id=2\ncheck_credit_hold customer_id=1\nACTION: escalate role=finance_manager",
+          "model_score": 1.0,
+          "feedback": {
+            "success": true,
+            "score": 1.0,
+            "details": [],
+            "evidence": {
+              "employee": {
+                "id": 1,
+                "name": "Youssef Adel",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 5,
+                "customer_id": 1,
+                "status": "pending",
+                "base_rate": 95000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 1,
+                "customer_name": "Delta Textiles Co.",
+                "credit_limit": 500000,
+                "balance_due": 12000,
+                "credit_status": "good"
+              },
+              "active_holds": [],
+              "invoices": [],
+              "rate_exceptions": [
+                {
+                  "id": 2,
+                  "shipment_id": 5,
+                  "discount_pct": 25,
+                  "status": "pending"
+                }
+              ],
+              "actions": [
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager"
+                  }
+                ]
+              ]
+            }
+          }
+        },
+        "LATS ungrounded": {
+          "output": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: check_rate_exception\nACTION: escalate role=finance_manager",
+          "search_reported_success": true,
+          "search_score": 0.5772,
+          "iterations": 1,
+          "feedback": {
+            "success": true,
+            "score": 1.0,
+            "details": [],
+            "evidence": {
+              "employee": {
+                "id": 1,
+                "name": "Youssef Adel",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 5,
+                "customer_id": 1,
+                "status": "pending",
+                "base_rate": 95000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 1,
+                "customer_name": "Delta Textiles Co.",
+                "credit_limit": 500000,
+                "balance_due": 12000,
+                "credit_status": "good"
+              },
+              "active_holds": [],
+              "invoices": [],
+              "rate_exceptions": [
+                {
+                  "id": 2,
+                  "shipment_id": 5,
+                  "discount_pct": 25,
+                  "status": "pending"
+                }
+              ],
+              "actions": [
+                [
+                  "check_shipment",
+                  {}
+                ],
+                [
+                  "check_customer",
+                  {}
+                ],
+                [
+                  "check_invoices",
+                  {}
+                ],
+                [
+                  "check_credit_hold",
+                  {}
+                ],
+                [
+                  "check_rate_exception",
+                  {}
+                ],
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager"
+                  }
+                ]
+              ]
+            }
+          }
+        },
+        "LATS grounded": {
+          "output": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: check_rate_exception\nACTION: escalate role=finance_manager",
+          "search_reported_success": true,
+          "search_score": 1.0,
+          "iterations": 1,
+          "feedback": {
+            "success": true,
+            "score": 1.0,
+            "details": [],
+            "evidence": {
+              "employee": {
+                "id": 1,
+                "name": "Youssef Adel",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 5,
+                "customer_id": 1,
+                "status": "pending",
+                "base_rate": 95000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 1,
+                "customer_name": "Delta Textiles Co.",
+                "credit_limit": 500000,
+                "balance_due": 12000,
+                "credit_status": "good"
+              },
+              "active_holds": [],
+              "invoices": [],
+              "rate_exceptions": [
+                {
+                  "id": 2,
+                  "shipment_id": 5,
+                  "discount_pct": 25,
+                  "status": "pending"
+                }
+              ],
+              "actions": [
+                [
+                  "check_shipment",
+                  {}
+                ],
+                [
+                  "check_customer",
+                  {}
+                ],
+                [
+                  "check_invoices",
+                  {}
+                ],
+                [
+                  "check_credit_hold",
+                  {}
+                ],
+                [
+                  "check_rate_exception",
+                  {}
+                ],
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager"
+                  }
+                ]
+              ]
+            }
+          }
+        }
+      }
+    },
+    "self_correction": {
+      "above_authority_rate": {
+        "Self-Refine": {
+          "draft": "ACTION: approve_rate_exception exception_id=2",
+          "critique": "PASS",
+          "revised": "ACTION: check_shipment shipment_id=5\nACTION: check_customer customer_id=1\nACTION: check_invoices customer_id=1\nACTION: check_credit_hold customer_id=1\nACTION: check_rate_exception exception_id=2\nACTION: escalate role=finance_manager",
+          "grounded_issues": [
+            "The deliverable is under 80 words and is probably incomplete.",
+            "Above-15% rate exceptions require a finance_manager; the current sales_rep cannot approve them.",
+            "The pending above-authority rate exception requires finance_manager escalation."
+          ],
+          "revision_feedback": {
+            "success": true,
+            "score": 1.0,
+            "details": [],
+            "evidence": {
+              "employee": {
+                "id": 1,
+                "name": "Youssef Adel",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 5,
+                "customer_id": 1,
+                "status": "pending",
+                "base_rate": 95000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 1,
+                "customer_name": "Delta Textiles Co.",
+                "credit_limit": 500000,
+                "balance_due": 12000,
+                "credit_status": "good"
+              },
+              "active_holds": [],
+              "invoices": [],
+              "rate_exceptions": [
+                {
+                  "id": 2,
+                  "shipment_id": 5,
+                  "discount_pct": 25,
+                  "status": "pending"
+                }
+              ],
+              "actions": [
+                [
+                  "check_shipment",
+                  {
+                    "shipment_id": "5"
+                  }
+                ],
+                [
+                  "check_customer",
+                  {
+                    "customer_id": "1"
+                  }
+                ],
+                [
+                  "check_invoices",
+                  {
+                    "customer_id": "1"
+                  }
+                ],
+                [
+                  "check_credit_hold",
+                  {
+                    "customer_id": "1"
+                  }
+                ],
+                [
+                  "check_rate_exception",
+                  {
+                    "exception_id": "2"
+                  }
+                ],
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager"
+                  }
+                ]
+              ]
+            }
+          }
+        },
+        "Reflexion": {
+          "output": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: check_rate_exception\nACTION: escalate role=finance_manager",
+          "memory": [],
+          "trials": [
+            {
+              "number": 1,
+              "attempt": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: check_rate_exception\nACTION: escalate role=finance_manager",
+              "success": true,
+              "score": 1.0,
+              "issues": [],
+              "reflection": null
+            }
+          ]
+        }
+      },
+      "severe_hold_sales_rep": {
+        "Self-Refine": {
+          "draft": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: release_credit_hold hold_id=2\nACTION: release_shipment",
+          "critique": "1. Authority violation: Employee 1 (sales_rep) attempts to release a severe active credit hold (hold_id=2), which is outside their role authority.\n2. Policy non-compliance: The plan does not escalate to finance_manager before attempting to release the hold, violating Swiftrail policy.\n3. Financial safety risk: The plan attempts to release the shipment while the customer remains on credit hold with overdue invoices, which is explicitly prohibited.\n4. Completeness gap: The plan omits checking rate exceptions, which is required by the policy for a blocked shipment.\n5. Dependency order violation: The plan attempts to release the hold and shipment without first escalating to finance_manager, which is a prerequisite for hold release.",
+          "revised": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: check_rate_exception\nACTION: escalate role=finance_manager",
+          "grounded_issues": [
+            "The deliverable is under 80 words and is probably incomplete.",
+            "Sales representatives cannot release a severe credit hold; escalation to finance_manager is required.",
+            "An active severe credit hold requires escalation to finance_manager before release.",
+            "The shipment cannot be safely released while the customer remains on credit hold."
+          ],
+          "revision_feedback": {
+            "success": true,
+            "score": 1.0,
+            "details": [],
+            "evidence": {
+              "employee": {
+                "id": 1,
+                "name": "Youssef Adel",
+                "role": "sales_rep"
+              },
+              "shipment": {
+                "id": 3,
+                "customer_id": 3,
+                "status": "blocked",
+                "base_rate": 140000,
+                "final_rate": null
+              },
+              "customer": {
+                "customer_id": 3,
+                "customer_name": "Red Sea Steel Imports",
+                "credit_limit": 800000,
+                "balance_due": 210000,
+                "credit_status": "hold"
+              },
+              "active_holds": [
+                {
+                  "id": 2,
+                  "customer_id": 3,
+                  "severity": "severe",
+                  "status": "active"
+                }
+              ],
+              "invoices": [
+                {
+                  "id": 3,
+                  "customer_id": 3,
+                  "paid_status": "overdue",
+                  "days_overdue": 95,
+                  "amount": 130000
+                },
+                {
+                  "id": 4,
+                  "customer_id": 3,
+                  "paid_status": "overdue",
+                  "days_overdue": 91,
+                  "amount": 80000
+                }
+              ],
+              "rate_exceptions": [],
+              "actions": [
+                [
+                  "check_shipment",
+                  {}
+                ],
+                [
+                  "check_customer",
+                  {}
+                ],
+                [
+                  "check_invoices",
+                  {}
+                ],
+                [
+                  "check_credit_hold",
+                  {}
+                ],
+                [
+                  "check_rate_exception",
+                  {}
+                ],
+                [
+                  "escalate",
+                  {
+                    "role": "finance_manager"
+                  }
+                ]
+              ]
+            }
+          }
+        },
+        "Reflexion": {
+          "output": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: check_rate_exception\nACTION: escalate role=finance_manager",
+          "memory": [],
+          "trials": [
+            {
+              "number": 1,
+              "attempt": "ACTION: check_shipment\nACTION: check_customer\nACTION: check_invoices\nACTION: check_credit_hold\nACTION: check_rate_exception\nACTION: escalate role=finance_manager",
+              "success": true,
+              "score": 1.0,
+              "issues": [],
+              "reflection": null
+            }
+          ]
+        }
+      }
+    }
+  }
+}

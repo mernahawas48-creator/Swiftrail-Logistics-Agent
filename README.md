@@ -89,7 +89,7 @@ The grader can locate each required planning concern directly:
 
 ### Current Offline Planning Validation
 
-The deterministic planning harness was rerun without API keys. The planning test suite passed **20/20 tests**, including DAG cycle rejection, decomposition divergence, PS/ToT/LATS routing, grounded validation, safe action verification, Self-Refine, and Reflexion memory carry-over.
+The deterministic planning harness was rerun without API keys. The planning and planning-evaluation suite passed **20/20 tests**, including DAG cycle rejection, decomposition divergence, PS/ToT/LATS routing, grounded validation, safe action verification, Self-Refine, and Reflexion memory carry-over.
 
 The current offline evaluation produced these checks:
 
@@ -105,45 +105,67 @@ The current offline evaluation produced these checks:
 | Self-Refine grounded revision | PASS |
 | Reflexion cross-trial reflection carry-over | PASS |
 
-For the severe-credit-hold case, the ungrounded baseline accepted the unsafe candidate, while the grounded validator rejected it with score **0.4** because a `sales_rep` cannot release a severe hold, finance-manager escalation was missing, `check_rate_exception` was missing, and the shipment remained blocked by the hold.
+For the severe-credit-hold case, the ungrounded baseline accepted the unsafe candidate, while the grounded validator rejected it with score **0.55** because a `sales_rep` cannot release a severe hold, finance-manager escalation was required, and the shipment could not be safely released while the customer remained on the active severe hold.
 
 Current scripted self-correction measurements:
 
 | Case | Method | Success | LLM calls | Total tokens |
 |---|---|---:|---:|---:|
-| `severe_hold_sales_rep` | Self-Refine (grounded) | 100% | 2 | 327 |
-| `severe_hold_sales_rep` | Reflexion (grounded) | 100% | 3 | 326 |
+| `severe_hold_sales_rep` | Self-Refine (grounded) | 100% | 2 | 311 |
+| `severe_hold_sales_rep` | Reflexion (grounded) | 100% | 3 | 318 |
 | `above_authority_rate` | Self-Refine (grounded) | 100% | 2 | 271 |
 | `above_authority_rate` | Reflexion (grounded) | 100% | 3 | 294 |
 
-These offline checks validate structure and deterministic behavior. Provider latency, provider token accounting, estimated production cost, and the full cross-method quality comparison must come from the final fixed-suite benchmark rather than being invented from the offline harness.
+These offline checks validate structure and deterministic behavior. Provider latency, provider token accounting, and provider-based cost are reported separately by the live Mistral benchmark below; the deterministic harness is kept for controlled edge cases such as grounded-vs-ungrounded failure and Reflexion cross-trial memory.
 
 
 ### Final Planning Cost / Quality Benchmark
 
-The fixed benchmark executes the repository's actual decomposition, Plan-and-Solve, Tree of Thoughts, LATS, Self-Refine, and Reflexion loops against Swiftrail seed-data-shaped requests. It uses deterministic scripted model responses so the comparison is reproducible without an API key. Token counts are a fixed local proxy, latency is measured locally, and estimated cost uses the same explicit local accounting rates already used by the planning evaluator ($0.15/M input tokens and $0.60/M output tokens).
+The final planning evidence uses **two complementary fixed-suite runs**:
 
-| Method | Success | Avg. LLM calls | Avg. tokens | Avg. latency | Est. cost/run | Avg. tool calls |
-|---|---:|---:|---:|---:|---:|---:|
-| Decomposition-first | 2/2 | 15 | 5508 | 3.984 ms | $0.001227 | 5 |
-| Dynamic decomposition | 1/2 | 10.5 | 5689 | 5.550 ms | $0.001001 | 3 |
-| Plan-and-Solve | 1/2 | 1 | 226.5 | 0.081 ms | $0.000039 | 0 |
-| Tree of Thoughts | 2/2 | 9 | 2386 | 0.849 ms | $0.000467 | 0 |
-| LATS ungrounded | 0/2 | 2 | 570.5 | 0.231 ms | $0.000120 | 0 |
-| LATS grounded | 2/2 | 4 | 1032.5 | 0.387 ms | $0.000200 | 0 |
-| Self-Refine | 1/2 | 2 | 548 | 0.358 ms | $0.000095 | 0 |
-| Reflexion | 2/2 | 3 | 566.5 | 0.247 ms | $0.000109 | 0 |
+1. **Live provider benchmark** — executes the repository's planning and self-correction methods with `mistral-small-latest`, records real Mistral API calls, provider-reported token usage, measured latency, and estimated cost.
+2. **Deterministic offline benchmark** — executes the same repository algorithms with scripted responses so specific behavioral requirements are reproducible without API variability, including decomposition divergence, grounded-vs-ungrounded failure, and Reflexion carrying a failure lesson into the next trial.
 
-The fixed cases satisfy the required method-selection evidence:
+The live benchmark uses the same fixed Swiftrail seed-data-shaped snapshots for every method, a shared plain `ACTION:` output contract, and performs no database writes.
 
-- **Decomposition-first** is preferred when the required evidence checklist is stable: it completed the `stable_minor_hold` case, while the dynamic planner stopped before all required evidence was gathered and failed grounded validation.
-- **Dynamic decomposition** earns its extra decision overhead on the severe-hold case: after three real-shaped reads, the deterministic severe-hold rule forces finance-manager escalation instead of continuing the original sequence.
-- **Plan-and-Solve** is the cheapest correct choice for the linear stable case (1 LLM call).
-- **Tree of Thoughts** is selected for lookahead: on the 25% rate-exception case, Plan-and-Solve failed while ToT searched alternatives and returned the safe finance-manager escalation branch.
-- **Grounded LATS** succeeded on both planning cases; the randomized ungrounded LATS accepted unsafe branches that the real validator rejected.
-- **Self-Refine** remains the cheaper local correction when one revision is enough. On the fixed severe-hold cross-trial case, its single revision still failed, while **Reflexion** succeeded on trial 2 by carrying the grounded failure lesson forward.
+#### Live Mistral comparison
 
-Full benchmark artifacts:
+| Method | Success | Avg. LLM calls | Avg. input tokens | Avg. output tokens | Avg. total tokens | Avg. latency | Est. cost/run | Avg. tool calls |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Decomposition-first | 2/2 | 14 | 9630.5 | 2729.5 | 12360 | 23344.177 ms | $0.00308227 | 5 |
+| Dynamic decomposition | 1/2 | 5.5 | 3097 | 470.5 | 3567.5 | 5954.995 ms | $0.00074685 | 4.5 |
+| Plan-and-Solve | 2/2 | 1 | 1051.5 | 166 | 1217.5 | 2321.562 ms | $0.00025732 | 0 |
+| Tree of Thoughts | 1/2 | 9 | 8415 | 1017.5 | 9432.5 | 11503.719 ms | $0.00187275 | 0 |
+| LATS ungrounded | 2/2 | 2 | 1939 | 83.5 | 2022.5 | 1649.617 ms | $0.00034095 | 0 |
+| LATS grounded | 2/2 | 2 | 1936 | 77.5 | 2013.5 | 1684.898 ms | $0.00033690 | 0 |
+| Self-Refine | 2/2 | 2 | 2079 | 134.5 | 2213.5 | 1978.337 ms | $0.00039255 | 0 |
+| Reflexion | 2/2 | 1 | 1050.5 | 48 | 1098.5 | 922.317 ms | $0.00018638 | 0 |
+
+Live benchmark configuration:
+
+```text
+Model: mistral-small-latest
+Token accounting: provider-reported LangChain AIMessage usage_metadata
+Input price used: $0.15 / 1M tokens
+Output price used: $0.60 / 1M tokens
+```
+
+#### Method-selection evidence
+
+- **Decomposition-first vs. dynamic:** decomposition-first achieved **2/2** overall, while dynamic achieved **1/2**. On the severe-hold case, however, both succeeded and dynamic reacted after the early severe-hold observation with only **5 LLM calls, 3124 tokens, and 5.06 s**, compared with decomposition-first's **15 calls, 13390 tokens, and 24.41 s**. This supports dynamic planning when an early observation can invalidate the remaining up-front plan.
+- **Plan-and-Solve:** on the two live direct-planning cases it achieved **2/2** with only **1 call** on average, making it the preferred choice when the reasoning path is linear and the required evidence is already available.
+- **Tree of Thoughts:** the live run achieved **1/2** and used **9 calls** on average, so it is not the default for simple cases. It is retained for genuinely branching/lookahead subtasks because the deterministic fixed 25% rate-exception case shows PS choosing an unsafe direct approval while ToT searches alternatives and returns the finance-manager escalation branch.
+- **Grounded LATS:** the live cases happened to be solved by both grounded and ungrounded LATS. The controlled deterministic severe/authority case is therefore retained as the grounding proof: the ungrounded environment accepts an unsafe branch that the Swiftrail validator rejects, while grounded LATS reflects on that feedback and selects a safe branch.
+- **Self-Refine vs. Reflexion:** both succeeded in the live run. The deterministic severe-hold cross-trial case is retained to show the required distinction: one Self-Refine revision remains insufficient, while Reflexion stores the grounded failure lesson and succeeds on trial 2.
+
+Live benchmark artifacts:
+
+```text
+artifacts/live_planning_benchmark.json
+artifacts/live_planning_benchmark.md
+```
+
+Deterministic benchmark and summary artifacts:
 
 ```text
 artifacts/full_planning_benchmark.json
@@ -151,13 +173,19 @@ artifacts/full_planning_benchmark.md
 artifacts/full_planning_benchmark_summary.json
 ```
 
-Run the fixed benchmark with:
+Run the deterministic benchmark with:
 
 ```powershell
 python -m planning_eval.full_benchmark
 ```
 
-The complete planning demo transcript generated from the same fixed run is:
+Run the live provider benchmark with:
+
+```powershell
+python -m planning_eval.live_benchmark
+```
+
+The complete deterministic planning demo transcript is:
 
 ```text
 demo/planning_demo_transcript.md
@@ -376,7 +404,7 @@ retrieval_eval/results/architecture_comparison.md
 agent/              Agent loop, routing, MCP client, sessions
 context_eval/       Context-management strategies and tests
 db/                 MySQL schema, seed data, ERD
-demo/               Captured MCP and RAG/Self-RAG demo evidence
+demo/               Captured MCP, RAG/Self-RAG, and planning demo evidence
 mcp_server/         FastMCP server, schemas, tools, resources, prompts
 memory/             Short-term, episodic, semantic memory and verified recall
 planning/           Decomposition, PS/ToT/LATS planning, self-correction, and grounding interfaces
@@ -394,6 +422,7 @@ pip install -r mcp_server\requirements.txt
 pip install -r agent\requirements.txt
 pip install -r rag\embeddings\requirements.txt
 pip install -r rag\vector_store\requirements.txt
+pip install -U langchain-mistralai
 pip install pytest
 ```
 
@@ -410,14 +439,23 @@ Copy `mcp_server/.env.example` to `mcp_server/.env` and set the local database c
 
 ### Configure Gemini
 
-Create a root `.env` file:
+The live Memory/RAG agent and `planning.run_swiftrail` use Gemini. Create a root `.env` file:
 
 ```env
 GEMINI_API_KEY=your_key
-GEMINI_MODEL=gemini-3.5-flash-lite
+GEMINI_MODEL=gemini-3.6-flash
 ```
 
-Do not commit real credentials.
+### Configure Mistral for the live planning benchmark
+
+The final provider-based planning benchmark uses the same provider as the reference planning toolkit:
+
+```env
+MISTRAL_API_KEY=your_key
+MISTRAL_MODEL=mistral-small-latest
+```
+
+Gemini and Mistral variables can coexist in the same root `.env`. Do not commit real credentials.
 
 ### Start Qdrant and ingest the corpus
 
@@ -489,17 +527,28 @@ Offline planning evaluation:
 python -m planning_eval.final_evaluation
 ```
 
-Full planning cost/quality benchmark and generated demo transcript:
+Deterministic planning benchmark and demo evidence:
 
 ```powershell
 python -m planning_eval.full_benchmark
 ```
 
-The generated planning-evaluation artifacts are:
+Live Mistral cost/quality benchmark:
+
+```powershell
+python -m planning_eval.live_benchmark
+```
+
+The main planning-evaluation artifacts are:
 
 ```text
 artifacts/final_planning_evaluation.json
 artifacts/final_planning_evaluation.md
+artifacts/full_planning_benchmark.json
+artifacts/full_planning_benchmark.md
+artifacts/full_planning_benchmark_summary.json
+artifacts/live_planning_benchmark.json
+artifacts/live_planning_benchmark.md
 ```
 
 ## Tests
@@ -544,7 +593,7 @@ artifacts/above_authority_rate_self_refine.json
 artifacts/above_authority_rate_reflexion.json
 ```
 
-A final planning demo should show the same real request decomposed both ways, the divergence point, one routed sub-task for each of Plan-and-Solve / Tree of Thoughts / LATS, a Self-Refine revision, Reflexion memory carried into the next trial, and the grounded validator rejecting a failure that an ungrounded critique accepts.
+`demo/planning_demo_transcript.md` captures the required planning evidence from the deterministic fixed suite: the same request decomposed both ways with the divergence point visible, routed Plan-and-Solve / Tree of Thoughts / LATS subtasks, a Self-Refine revision, Reflexion carrying a reflection into the next trial, and a grounded failure that the ungrounded evaluator misses.
 
-This requirement is now captured in `demo/planning_demo_transcript.md`, generated by the fixed full benchmark.
+The separate live provider cost/quality evidence is stored in `artifacts/live_planning_benchmark.json` and `artifacts/live_planning_benchmark.md`.
 
