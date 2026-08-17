@@ -27,7 +27,6 @@ from .algorithms.dynamic_decomposition import dynamic_decompose_blocked_shipment
 from .algorithms.environment import Environment
 from .divergence import compute_divergence
 from .execution_adapter import SubtaskExecutionAdapter
-from .swiftrail_env import ShipmentResolutionEnvironment
 from .trace_logger import log_decomposition_first_run, log_divergence, log_dynamic_run
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -50,14 +49,18 @@ class SwiftrailPlanningOrchestrator:
     """Owns one authenticated MCP connection and runs either decomposition
     method against it. Grounding for LATS/Reflexion sub-tasks (owned by the
     self-correction concern) is threaded through as a real, non-random
-    ``Environment`` -- see swiftrail_env.py -- not the toolkit's default."""
-
-    def __init__(self, agent: "SwiftrailAgent", session_id: str, llm: BaseChatModel):
+    ``Environment`` -- see algorithms/environment.py -- not the toolkit's randomized evaluator. """
+    def __init__(
+        self,
+        agent: "SwiftrailAgent",
+        session_id: str,
+        llm: BaseChatModel,
+        employee_id: int,
+    ):
         self.agent = agent
         self.session_id = session_id
         self.llm = llm
-        self.environment: Environment = ShipmentResolutionEnvironment(agent, session_id)
-
+        self.employee_id = employee_id
     async def run(
         self,
         shipment_id: int,
@@ -69,12 +72,22 @@ class SwiftrailPlanningOrchestrator:
         return await self._run_dynamic(shipment_id, customer_id)
 
     async def _run_decomposition_first(self, shipment_id: int, customer_id: int) -> PlanningRunResult:
-        static_plan = decompose_blocked_shipment(shipment_id, customer_id, self.llm)
+        static_plan = decompose_blocked_shipment(
+            shipment_id,
+            customer_id,
+            self.llm,
+        )
+
+        environment = Environment(
+            shipment_id=shipment_id,
+            employee_id=self.employee_id,
+        )
+
         adapter = SubtaskExecutionAdapter(
             agent=self.agent,
             session_id=self.session_id,
             llm=self.llm,
-            environment=self.environment,
+            environment=environment,
         )
         outputs, llm_calls = await execute_plan_swiftrail(static_plan, adapter)
         terminal = static_plan.terminal_tasks()
@@ -97,13 +110,18 @@ class SwiftrailPlanningOrchestrator:
             raw = await self.agent.call_tool(tool_name, args)
             return self.agent.decode_tool_result(raw)
 
+        environment = Environment(
+            shipment_id=shipment_id,
+            employee_id=self.employee_id,
+        )
+
         steps = await dynamic_decompose_blocked_shipment(
             shipment_id=shipment_id,
             customer_id=customer_id,
             session_id=self.session_id,
             llm=self.llm,
             call_tool=call_tool,
-            environment=self.environment,
+            environment=environment,
         )
         result = steps[-1].output if steps else "No steps were executed."
         # Roughly one LLM call per non-forced decision, plus the final
@@ -121,15 +139,22 @@ class SwiftrailPlanningOrchestrator:
         )
         return PlanningRunResult(DecompositionMethod.DYNAMIC, result, str(artifact))
 
-    async def run_both_and_log_divergence(self, shipment_id: int, customer_id: int):
-        """Used by planning_eval's comparison suite: runs both methods
-        against the same real case and records where/why they diverged."""
-
+    async def run_both_and_log_divergence(
+        self,
+        shipment_id: int,
+        customer_id: int,
+    ):
+        """Run both decomposition methods and record their divergence."""
         static_plan = decompose_blocked_shipment(shipment_id, customer_id, self.llm)
 
         async def call_tool(tool_name: str, args: dict) -> dict:
             raw = await self.agent.call_tool(tool_name, args)
             return self.agent.decode_tool_result(raw)
+
+        environment = Environment(
+            shipment_id=shipment_id,
+            employee_id=self.employee_id,
+        )
 
         dynamic_steps = await dynamic_decompose_blocked_shipment(
             shipment_id=shipment_id,
@@ -137,7 +162,7 @@ class SwiftrailPlanningOrchestrator:
             session_id=self.session_id,
             llm=self.llm,
             call_tool=call_tool,
-            environment=self.environment,
+            environment=environment,
         )
         divergence = compute_divergence(static_plan, dynamic_steps)
         artifact = log_divergence(divergence)
