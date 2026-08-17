@@ -107,7 +107,10 @@ class SwiftrailPlanningOrchestrator:
 
     async def _run_dynamic(self, shipment_id: int, customer_id: int) -> PlanningRunResult:
         async def call_tool(tool_name: str, args: dict) -> dict:
-            raw = await self.agent.call_tool(tool_name, args)
+            raw = await self.agent.call_tool(
+                tool_name,
+                {"request": args},
+            )
             return self.agent.decode_tool_result(raw)
 
         environment = Environment(
@@ -148,7 +151,10 @@ class SwiftrailPlanningOrchestrator:
         static_plan = decompose_blocked_shipment(shipment_id, customer_id, self.llm)
 
         async def call_tool(tool_name: str, args: dict) -> dict:
-            raw = await self.agent.call_tool(tool_name, args)
+            raw = await self.agent.call_tool(
+                tool_name,
+                {"request": args},
+            )
             return self.agent.decode_tool_result(raw)
 
         environment = Environment(
