@@ -90,12 +90,40 @@ class ShipmentRateExceptionInput(SessionScopedInput):
     )
 
 
+class RateExceptionDecision(StrictInputModel):
+    approve: bool = Field(
+        ...,
+        description="True to approve the above-authority discount; false to reject it.",
+    )
+    reviewer_note: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Human finance-review rationale used in the returned audit result.",
+    )
+
+    @field_validator("reviewer_note")
+    @classmethod
+    def reject_placeholder_note(cls, value: str) -> str:
+        if value.lower() in {"test note", "no reason", "n/a", "unknown"}:
+            raise ValueError("reviewer_note must contain a meaningful rationale")
+        return value
+
+
 class ApproveRateExceptionInput(SessionScopedInput):
     exception_id: int = Field(
         ...,
         gt=0,
         description="Positive identifier of a pending rate-exception request.",
         examples=[2],
+    )
+    decision: RateExceptionDecision | None = Field(
+        default=None,
+        description=(
+            "Optional pre-collected human decision from the platform. "
+            "When omitted for an above-authority discount, the MCP server "
+            "uses normal MCP elicitation."
+        ),
     )
 
 
@@ -122,24 +150,6 @@ class PortfolioRiskSweepInput(SessionScopedInput):
     )
 
 
-class RateExceptionDecision(StrictInputModel):
-    approve: bool = Field(
-        ...,
-        description="True to approve the above-authority discount; false to reject it.",
-    )
-    reviewer_note: str = Field(
-        ...,
-        min_length=10,
-        max_length=500,
-        description="Human finance-review rationale used in the returned audit result.",
-    )
-
-    @field_validator("reviewer_note")
-    @classmethod
-    def reject_placeholder_note(cls, value: str) -> str:
-        if value.lower() in {"test note", "no reason", "n/a", "unknown"}:
-            raise ValueError("reviewer_note must contain a meaningful rationale")
-        return value
 
 
 class CreditHoldReleaseDecision(StrictInputModel):
@@ -166,3 +176,4 @@ EmployeeRole = Literal["sales_rep", "finance_manager"]
 RateExceptionStatus = Literal["pending", "auto_approved", "approved", "rejected"]
 CreditHoldStatus = Literal["active", "released"]
 CreditHoldSeverity = Literal["minor", "severe"]
+
