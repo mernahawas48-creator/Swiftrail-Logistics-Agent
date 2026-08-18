@@ -118,22 +118,26 @@ async def approve_rate_exception(
                 {"discount_pct": discount, "current_role": identity.role},
             )
 
-        result = await ctx.elicit(
-            message=(
-                f"Rate exception {validated.exception_id} requests a {discount}% "
-                f"discount (justification: {exception['justification']}). This "
-                "exceeds the 15% delegated limit. Approve or reject?"
-            ),
-            schema=RateExceptionDecision,
-        )
-        if result.action != "accept" or result.data is None:
-            return fail(
-                "HUMAN_DECISION_NOT_ACCEPTED",
-                "The above-authority rate exception was not finalized.",
-                {"elicitation_action": str(result.action)},
+        if validated.decision is not None:
+            decision = validated.decision
+        else:
+            result = await ctx.elicit(
+                message=(
+                    f"Rate exception {validated.exception_id} requests a {discount}% "
+                    f"discount (justification: {exception['justification']}). This "
+                    "exceeds the 15% delegated limit. Approve or reject?"
+                ),
+                schema=RateExceptionDecision,
             )
+            if result.action != "accept" or result.data is None:
+                return fail(
+                    "HUMAN_DECISION_NOT_ACCEPTED",
+                    "The above-authority rate exception was not finalized.",
+                    {"elicitation_action": str(result.action)},
+                )
+            decision = result.data
 
-        final_status = "approved" if result.data.approve else "rejected"
+        final_status = "approved" if decision.approve else "rejected"
         with db_cursor(transactional=True) as (_, cursor):
             identity, auth_error = authorize_session(
                 cursor,
@@ -158,6 +162,22 @@ async def approve_rate_exception(
                     "CONCURRENT_OR_IDEMPOTENT_UPDATE",
                     "The rate exception changed during human review; no duplicate write was applied.",
                 )
+
+        return ok(
+            "RATE_EXCEPTION_RESOLVED",
+            f"The rate exception was {final_status} by the finance manager.",
+            {
+                "exception_id": validated.exception_id,
+                "discount_pct": discount,
+                "status": final_status,
+                "approved_by": identity.employee_id,
+                "reviewer_note": decision.reviewer_note,
+            },
+        )
+    except SwiftrailDatabaseError as db_error:
+        return database_failure(db_error)
+    except Exception:
+        return unexpected_failure("rate-exception resolution")
 
         return ok(
             "RATE_EXCEPTION_RESOLVED",
