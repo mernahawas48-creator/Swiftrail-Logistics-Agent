@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, ClassVar
+from typing import Any, Callable
 
 
 @dataclass
@@ -25,7 +24,16 @@ class AgentToolRegistry:
         return set(self.permissions.get(agent_id, set()))
 
     def can_call(self, agent_id: str, tool_name: str) -> bool:
+        """Return whether an agent currently has permission for a tool."""
         return tool_name in self.permissions.get(agent_id, set())
+
+    def require_permission(self, agent_id: str, tool_name: str) -> None:
+        """Fail closed when a caller tries to use an ungranted tool."""
+        if not self.can_call(agent_id, tool_name):
+            raise PermissionError(
+                f"Agent '{agent_id}' is not permitted to call MCP tool '{tool_name}'."
+            )
+
 
 
 class RuntimeToolManager:
@@ -37,13 +45,39 @@ class RuntimeToolManager:
     still has permission to use it.
     """
 
-    PROTECTED_TOOLS: ClassVar[frozenset[str]] = frozenset({"authenticate"})
+    PROTECTED_TOOLS = {"authenticate"}
 
     def __init__(self, server: Any, tool_functions: dict[str, Callable[..., Any]]):
         self.server = server
         self.tool_functions = dict(tool_functions)
         self.registry = AgentToolRegistry()
         self._lock = asyncio.Lock()
+
+    def register_agent(self, agent_id: str, tools: set[str] | None = None) -> dict[str, Any]:
+        self.registry.register_agent(agent_id, tools)
+        return self.snapshot(agent_id)
+
+    def unregister_agent(self, agent_id: str) -> None:
+        """Remove an agent and clean up server tools no longer used."""
+        tools = self.registry.permissions.pop(agent_id, set())
+        for tool_name in tools:
+            if tool_name in self.PROTECTED_TOOLS:
+                continue
+            still_used = any(tool_name in t for t in self.registry.permissions.values())
+            if not still_used:
+                self._remove_server_tool(tool_name)
+
+    def set_agent_tools(self, agent_id: str, tools: set[str]) -> dict[str, Any]:
+        """Replace an agent's permissions atomically at the registry level."""
+        current = self.registry.tools_for(agent_id)
+        for tool_name in current - tools:
+            self.registry.remove(agent_id, tool_name)
+        for tool_name in tools:
+            if tool_name not in self.tool_functions:
+                raise KeyError(f"Unknown tool: {tool_name}")
+            self.registry.add(agent_id, tool_name)
+            self._ensure_server_tool(tool_name, self.tool_functions[tool_name])
+        return self.snapshot(agent_id)
 
     async def add_tool_to_agent(self, agent_id: str, tool_name: str) -> dict[str, Any]:
         async with self._lock:
@@ -96,3 +130,4 @@ class RuntimeToolManager:
         result = notifier()
         if asyncio.iscoroutine(result):
             await result
+
