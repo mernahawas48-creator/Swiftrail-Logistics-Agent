@@ -3,10 +3,10 @@ from __future__ import annotations
 import asyncio
 import sys
 import uuid
+from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import networkx as nx
 
@@ -19,6 +19,7 @@ if str(_MCP_ROOT) not in sys.path:
 
 from .checkpoint import SQLiteCheckpointStore
 from .state import RateExceptionState
+
 
 AUTO_APPROVAL_LIMIT = 15.0
 
@@ -61,8 +62,8 @@ def _mcp_handlers():
         ShipmentRateExceptionInput,
         ShipmentStatusInput,
     )
-    from tools.rate_exception import approve_rate_exception
     from tools.read_tools import get_shipment_rate_exception, get_shipment_status
+    from tools.rate_exception import approve_rate_exception
     return (
         ApproveRateExceptionInput,
         ShipmentRateExceptionInput,
@@ -85,10 +86,24 @@ class RateExceptionGraph:
     decision, checkpoints each transition, and resumes after a process restart.
     """
 
-    def __init__(self, checkpoint_store: SQLiteCheckpointStore | None = None, *, live_mcp: bool = False, mcp_url: str = "http://127.0.0.1:8000/mcp"):
+    def __init__(
+        self,
+        checkpoint_store: SQLiteCheckpointStore | None = None,
+        *,
+        live_mcp: bool = False,
+        mcp_url: str = "http://127.0.0.1:8000/mcp",
+        llm: Any | None = None,
+        decision_planner: Any | None = None,
+        agent_id: str = "state_graph_2",
+        permission_checker: Callable[[str, str], bool] | None = None,
+    ):
         self.checkpoints = checkpoint_store or SQLiteCheckpointStore()
         self.live_mcp = live_mcp
         self.mcp_url = mcp_url
+        self.llm = llm
+        self.decision_planner = decision_planner
+        self.agent_id = agent_id
+        self.permission_checker = permission_checker
         self.graph = self._build_graph()
 
     @staticmethod
@@ -215,7 +230,8 @@ class RateExceptionGraph:
                     self._transition(state, "classify_authority")
                 elif state.current_node == "classify_authority":
                     from .react import ConstrainedReActPlanner
-                    decision = ConstrainedReActPlanner().decide(
+                    planner = self.decision_planner or ConstrainedReActPlanner(llm=self.llm)
+                    decision = planner.decide(
                         shipment=state.shipment or {}, exception=state.rate_exception or {}, policy=state.policy_evidence,
                     )
                     state.requires_human = decision.decision == "human_review"
@@ -284,7 +300,7 @@ class RateExceptionGraph:
         from agent.mcp_graph_client import GraphMCPClient
 
         async def operation():
-            client = GraphMCPClient(state.mcp_url)
+            client = GraphMCPClient(state.mcp_url, agent_id=self.agent_id, permission_checker=self.permission_checker)
             try:
                 auth = await client.authenticate(state.session_id, state.employee_id)
                 if not auth.get("success"):
