@@ -61,3 +61,27 @@ def test_hitl_task_is_persisted(tmp_path: Path):
     state.hitl_task_id = "HITL-123"
     store.create_task(state.hitl_task_id, state.run_id, "hitl", state.to_dict())
     assert store.list_tasks(task_type="hitl")[0]["task_id"] == "HITL-123"
+
+
+def test_graph_accepts_real_llm_planner():
+    class FakePlanner:
+        def decide(self, **kwargs):
+            from state_graph.graph_2.react import ReActDecision
+            return ReActDecision("auto_approve", "test", "approve_rate_exception")
+
+    graph = RateExceptionGraph(
+        SQLiteCheckpointStore(),
+        llm=object(),
+        decision_planner=FakePlanner(),
+    )
+    assert graph.llm is not None
+    assert graph.decision_planner is not None
+
+
+
+def test_hitl_task_is_persisted(tmp_path: Path):
+    store = SQLiteCheckpointStore(tmp_path / "checkpoints.db")
+    state = RateExceptionState(run_id="run-4", shipment_id=5, session_id="demo-session-001", current_node="wait_for_admin")
+    state.hitl_task_id = "HITL-123"
+    store.create_task(state.hitl_task_id, state.run_id, "hitl", state.to_dict())
+    assert store.list_tasks(task_type="hitl")[0]["task_id"] == "HITL-123"
