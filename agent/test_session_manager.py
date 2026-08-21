@@ -1,72 +1,20 @@
 from agent.session_manager import SessionManager
 
 
+def test_session_lifecycle():
+    manager = SessionManager()
 
-# Create session manager
-manager = SessionManager()
+    session = manager.create_session(
+        customer_id="CUST001",
+        customer_name="ABC Logistics",
+    )
+    session.add_note("Customer asked about shipment 500.")
 
+    assert manager.get_session(session.session_id) is session
+    assert session.customer_id == "CUST001"
+    assert session.customer_name == "ABC Logistics"
+    assert session.scratchpad == ["Customer asked about shipment 500."]
+    assert session.session_id in manager.list_sessions()
 
-
-# Create Swiftrail customer session
-session = manager.create_session(
-    customer_id="CUST001",
-    customer_name="ABC Logistics"
-)
-
-
-
-print("Session ID:")
-print(session.session_id)
-
-
-
-print("\nCustomer:")
-print(session.customer_id)
-print(session.customer_name)
-
-
-
-# Add some conversation notes
-session.add_note(
-    "Customer asked about shipment MSKU100001"
-)
-
-
-session.add_note(
-    "Request routed to shipment_tool"
-)
-
-
-
-print("\nScratchpad:")
-print(session.scratchpad)
-
-
-
-# Show active sessions
-print("\nCurrent Sessions:")
-print(manager.list_sessions())
-
-
-
-# Get session again
-loaded_session = manager.get_session(
-    session.session_id
-)
-
-
-print("\nLoaded Session:")
-print(loaded_session.customer_name)
-
-
-
-# Close session
-manager.end_session(
-    session.session_id
-)
-
-
-
-print("\nAfter Closing:")
-print(manager.list_sessions())
-
+    manager.end_session(session.session_id)
+    assert manager.get_session(session.session_id) is None

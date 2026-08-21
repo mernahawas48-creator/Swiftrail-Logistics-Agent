@@ -1,14 +1,11 @@
-"""Swiftrail live agent loop with context, memory recall, and selected RAG path.
-
-The existing MCP protocol client remains in ``agent/client.py``. This loop adds
-routing to the final selected Hybrid RAG architecture and to verified episodic /
-semantic memory recall without duplicating the server or database.
-"""
+"""Swiftrail agent loop with context, memory, RAG, and real MCP routing."""
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
+from agent.mcp_gateway import MCPGateway, MCPGatewayError, StdioMCPGateway
 from agent.query_router import QueryRouter
 from agent.session_manager import SessionManager
 from context_eval.strategies.sliding_window import SlidingWindow
@@ -17,7 +14,6 @@ from memory.router import PromoteDropRouter
 from memory.scratchpad import Scratchpad
 from memory.semantic_store import SemanticMemory
 from memory.short_term import ShortTermBuffer, Turn
-
 
 SAFE_UNVERIFIED_ANSWER = (
     "I cannot provide a reliable answer because no verified information was found."
@@ -34,6 +30,7 @@ class AgentLoop:
         memory_recall: Any | None = None,
         episodic_memory: EpisodicMemory | None = None,
         semantic_memory: SemanticMemory | None = None,
+        mcp_gateway: MCPGateway | None = None,
         short_term_max_turns: int = 12,
     ):
         self.session_manager = SessionManager()
@@ -44,6 +41,12 @@ class AgentLoop:
         self._memory_recall = memory_recall
         self._episodic_memory = episodic_memory
         self._semantic_memory = semantic_memory
+        employee_id = os.getenv("SWIFTRAIL_EMPLOYEE_ID", "").strip()
+        self._mcp_gateway = mcp_gateway or (
+            StdioMCPGateway(employee_id=int(employee_id))
+            if employee_id.isdigit() and int(employee_id) > 0
+            else None
+        )
         self._promote_router: PromoteDropRouter | None = None
 
         self._short_term_max_turns = short_term_max_turns
@@ -110,7 +113,12 @@ class AgentLoop:
                 customer_id=self._normalized_customer_id(session.customer_id),
             )
         elif destination in {"shipment", "invoice", "customer", "credit"}:
-            result = self._answer_from_mcp_placeholder(destination, last_message)
+            result = self._answer_from_mcp(
+                destination,
+                last_message,
+                session_id=session_id,
+                customer_id=self._normalized_customer_id(session.customer_id),
+            )
         else:
             result = {
                 "answer": SAFE_UNVERIFIED_ANSWER,
@@ -239,17 +247,40 @@ class AgentLoop:
         text = str(value).strip()
         return int(text) if text.isdigit() else None
 
-    def _answer_from_mcp_placeholder(self, destination: str, query: str) -> dict[str, Any]:
-        """Preserve the existing operational route while MCP execution stays in client.py.
+    def _answer_from_mcp(
+        self,
+        destination: str,
+        query: str,
+        *,
+        session_id: str,
+        customer_id: int | None,
+    ) -> dict[str, Any]:
+        """Execute one operational route through the injected MCP gateway."""
 
-        The repository's real MCP lifecycle/tool execution is implemented by
-        ``agent.client.SwiftrailAgent``. This method intentionally does not
-        create a second server/database path. RAG and memory are integrated in
-        this loop; existing MCP operations continue to use that client.
-        """
+        if self._mcp_gateway is None:
+            return {
+                "answer": SAFE_UNVERIFIED_ANSWER,
+                "verified": False,
+                "evidence": [],
+                "verification": "No MCP gateway was configured for this agent.",
+            }
 
-        evidence = self.call_mcp_tool(destination, query)
-        verified = evidence.get("data") is not None
+        try:
+            evidence = self._mcp_gateway.call(
+                destination,
+                query,
+                session_id=session_id,
+                customer_id=customer_id,
+            )
+        except MCPGatewayError as exc:
+            return {
+                "answer": SAFE_UNVERIFIED_ANSWER,
+                "verified": False,
+                "evidence": [],
+                "verification": str(exc),
+            }
+
+        verified = evidence.get("success") is True and evidence.get("data") is not None
         answer = (
             self.generate_response(destination, evidence)
             if verified
@@ -259,24 +290,12 @@ class AgentLoop:
             "answer": answer,
             "verified": verified,
             "evidence": [evidence] if verified else [],
-            "verification": "Existing MCP operational path." if verified else "No MCP evidence.",
+            "verification": (
+                f"MCP tool {evidence.get('source')} returned verified data."
+                if verified
+                else evidence.get("message", "No MCP evidence.")
+            ),
         }
-
-    def call_mcp_tool(self, destination: str, query: str) -> dict[str, Any]:
-        """Compatibility path retained from the existing loop.
-
-        Real MCP protocol calls remain in ``agent/client.py``; no database or
-        server implementation is duplicated here.
-        """
-
-        labels = {
-            "shipment": ("shipment_database", "Shipment information retrieved"),
-            "invoice": ("invoice_database", "Invoice information retrieved"),
-            "customer": ("customer_database", "Customer information retrieved"),
-            "credit": ("finance_database", "Credit status retrieved"),
-        }
-        source, data = labels.get(destination, ("unknown", None))
-        return {"source": source, "data": data}
 
     @staticmethod
     def generate_response(category: str, evidence: dict[str, Any]) -> str:
