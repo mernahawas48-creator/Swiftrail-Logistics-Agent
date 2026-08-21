@@ -6,7 +6,6 @@ import pytest
 
 from rag.agentic_rag.controller import AgenticRAG
 
-
 pytestmark = pytest.mark.skipif(
     os.getenv(
         "RUN_AGENTIC_RAG_INTEGRATION"

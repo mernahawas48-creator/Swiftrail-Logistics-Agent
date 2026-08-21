@@ -10,15 +10,14 @@ from __future__ import annotations
 import asyncio
 import json
 
-from app_instance import app
-
 # Import modules for registration side effects.
-import tools.auth  # noqa: F401
-import tools.credit_hold  # noqa: F401
-import tools.portfolio  # noqa: F401
-import tools.rate_exception  # noqa: F401
-import tools.read_tools  # noqa: F401
+import tools.auth
+import tools.credit_hold
+import tools.portfolio
+import tools.rate_exception
+import tools.read_tools
 import tools.resources_prompts  # noqa: F401
+from app_instance import app
 
 
 async def main() -> None:

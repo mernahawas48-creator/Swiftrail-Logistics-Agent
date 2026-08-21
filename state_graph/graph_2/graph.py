@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 import sys
 import uuid
-from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Any
 
 import networkx as nx
@@ -19,7 +19,6 @@ if str(_MCP_ROOT) not in sys.path:
 
 from .checkpoint import SQLiteCheckpointStore
 from .state import RateExceptionState
-
 
 AUTO_APPROVAL_LIMIT = 15.0
 
@@ -62,8 +61,8 @@ def _mcp_handlers():
         ShipmentRateExceptionInput,
         ShipmentStatusInput,
     )
-    from tools.read_tools import get_shipment_rate_exception, get_shipment_status
     from tools.rate_exception import approve_rate_exception
+    from tools.read_tools import get_shipment_rate_exception, get_shipment_status
     return (
         ApproveRateExceptionInput,
         ShipmentRateExceptionInput,

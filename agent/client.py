@@ -32,7 +32,7 @@ Covers, end to end:
   5. SAMPLING: `sampling_callback` is what actually answers
      sampling/createMessage requests using the AGENT's own model (not the
      server's), per the sampling capability the agent declared in
-     connect(). If ANTHROPIC_API_KEY is set it makes a real completion;
+     connect(). If MISTRAL_API_KEY is set it makes a real completion;
      otherwise it returns a clearly-labeled canned response so the demo
      still runs offline.
 
@@ -54,11 +54,10 @@ from pathlib import Path
 from typing import Any
 
 from mcp import ClientSession, StdioServerParameters
-from mcp.shared.context import RequestContext
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamable_http_client
+from mcp.shared.context import RequestContext
 from mcp.types import CreateMessageResult, ElicitResult, TextContent
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SERVER_DIR = PROJECT_ROOT / "mcp_server"
@@ -215,18 +214,31 @@ class SwiftrailAgent:
             last_content = params.messages[-1].content
             prompt_text = getattr(last_content, "text", str(last_content))
 
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        api_key = os.environ.get("MISTRAL_API_KEY")
         if api_key:
-            import anthropic
+            try:
+                from langchain_mistralai import ChatMistralAI
+            except ImportError as exc:
+                raise RuntimeError(
+                    "Mistral LangChain integration is not installed."
+                ) from exc
 
-            client = anthropic.Anthropic(api_key=api_key)
-            response = client.messages.create(
-                model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
-                max_tokens=params.maxTokens or 200,
-                messages=[{"role": "user", "content": prompt_text}],
+            model_name = os.environ.get(
+                "MISTRAL_MODEL",
+                "mistral-small-latest",
             )
-            text = response.content[0].text
-            model_name = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+            model = ChatMistralAI(
+                model=model_name,
+                api_key=api_key,
+                temperature=0.1,
+                max_tokens=params.maxTokens or 200,
+                max_retries=2,
+            )
+            response = await asyncio.to_thread(model.invoke, prompt_text)
+            text = getattr(response, "text", None)
+            if not isinstance(text, str) or not text.strip():
+                content = getattr(response, "content", "")
+                text = content if isinstance(content, str) else str(content)
         else:
             text = (
                 "[offline sampling fallback] Review active holds and high "

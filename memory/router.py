@@ -17,13 +17,13 @@ any given turn, exactly why it was kept or dropped.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any
 
 from memory.episodic_store import EpisodicMemory
 from memory.short_term import Turn
-
 
 # Event types worth promoting for Swiftrail: anything that changes the
 # operational or financial state of a customer relationship. Small talk

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 
-
 SECTION_ID_PATTERN = re.compile(r"\b[A-Z]{2,5}-\d+(?:\.\d+)?\b", re.IGNORECASE)
 
 

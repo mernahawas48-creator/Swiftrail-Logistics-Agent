@@ -15,7 +15,6 @@ from rag.metadata.schema import (
     SearchFilters,
 )
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_PATH = PROJECT_ROOT / "rag" / "corpus" / "manifest.json"
 

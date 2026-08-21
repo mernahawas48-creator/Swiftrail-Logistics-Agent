@@ -7,14 +7,13 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_mistralai import ChatMistralAI
 
 from agent.client import SwiftrailAgent
 from planning.orchestrator import (
     DecompositionMethod,
     SwiftrailPlanningOrchestrator,
 )
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -58,19 +57,19 @@ def build_parser() -> argparse.ArgumentParser:
 async def run(args: argparse.Namespace) -> None:
     load_dotenv(ROOT / ".env")
 
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("MISTRAL_API_KEY")
     if not api_key:
         raise RuntimeError(
-            "GEMINI_API_KEY is missing from the root .env file."
+            "MISTRAL_API_KEY is missing from the root .env file."
         )
 
     model_name = (
         args.model
-        or os.getenv("GEMINI_MODEL")
-        or "gemini-3.6-flash"
+        or os.getenv("MISTRAL_MODEL")
+        or "mistral-small-latest"
     )
 
-    llm = ChatGoogleGenerativeAI(
+    llm = ChatMistralAI(
         model=model_name,
         api_key=api_key,
         temperature=0.1,

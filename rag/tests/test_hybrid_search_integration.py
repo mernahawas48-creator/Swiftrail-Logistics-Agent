@@ -6,7 +6,6 @@ import pytest
 
 from rag.hybrid_search.search import HybridSearch
 
-
 pytestmark = pytest.mark.skipif(
     os.getenv(
         "RUN_HYBRID_SEARCH_INTEGRATION"

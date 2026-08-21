@@ -3,7 +3,6 @@ import uuid
 from agent.agent_state import AgentState
 
 
-
 class SessionManager:
     """
     Manage Swiftrail customer conversations.

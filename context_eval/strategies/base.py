@@ -8,4 +8,3 @@ class ContextStrategy(ABC):
     @abstractmethod
     def apply(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Prune or transform messages before sending them to the model."""
-        pass

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
-from typing import Any, Sequence
-
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any
 
 SECTION_ID_PATTERN = re.compile(
     r"^[A-Z]{2,5}-\d+(?:\.\d+)?$",

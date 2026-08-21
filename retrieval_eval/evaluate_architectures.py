@@ -3,19 +3,19 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict, dataclass
 import hashlib
 import json
-from pathlib import Path
 import re
 import time
-from typing import Any, Callable, Sequence
+from collections.abc import Sequence
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any
 
 from rag.agentic_rag.controller import AgenticRAG
 from rag.hybrid_rag.pipeline import HybridRAG
 from rag.naive_rag.generator import GenerationUsage
 from rag.naive_rag.pipeline import NaiveRAG
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_QUESTIONS = (
@@ -27,8 +27,8 @@ DEFAULT_RESULTS_DIR = (
 SAFE_PREFIX = "i could not find enough authorized"
 
 
-class DailyQuotaExhausted(RuntimeError):
-    """Raised when the model's requests-per-day quota is exhausted."""
+class ProviderQuotaExhausted(RuntimeError):
+    """Raised when the model provider reports a non-retryable quota limit."""
 
 
 
@@ -97,7 +97,7 @@ def load_cases(
     )
 
     if not isinstance(payload, list):
-        raise ValueError(
+        raise TypeError(
             "The architecture evaluation dataset must be a JSON list."
         )
 
@@ -167,12 +167,12 @@ def run_comparison(
 ) -> ComparisonReport:
     """Run every architecture against every fixed test question.
 
-    Transient Gemini 503 errors are retried without changing the fixed
+    Transient provider 429/5xx errors are retried without changing the fixed
     questions or the architecture configuration. Retry waiting time is
     recorded separately and is not included in the per-query latency metric.
 
     Completed architecture/case pairs can be checkpointed after every
-    successful case. If the daily Gemini quota is exhausted, a later run can
+    successful case. If the provider quota is exhausted, a later run can
     resume from the checkpoint without repeating completed model calls.
     """
 
@@ -398,7 +398,7 @@ def _answer_with_transient_retry(
     max_api_retries: int,
     initial_retry_delay: float,
 ) -> tuple[Any, float, int, float]:
-    """Execute one case and retry only transient Gemini 503 failures.
+    """Execute one case and retry only transient provider/API failures.
 
     The returned latency measures the successful pipeline attempt. Deliberate
     retry waiting is tracked separately so service congestion does not inflate
@@ -427,21 +427,21 @@ def _answer_with_transient_retry(
                 total_wait,
             )
         except Exception as exc:
-            if _is_daily_quota_exhausted(exc):
-                raise DailyQuotaExhausted(
-                    "Gemini requests-per-day quota is exhausted for the "
+            if _is_non_retryable_quota_exhausted(exc):
+                raise ProviderQuotaExhausted(
+                    "The model-provider quota is exhausted for the "
                     f"current model while running case '{case.case_id}'."
                 ) from exc
 
             if not (
-                _is_transient_503(exc)
-                or _is_transient_429(exc)
+                _is_transient_service_error(exc)
+                or _is_transient_rate_limit(exc)
             ):
                 raise
 
             if retry_count >= max_api_retries:
                 raise RuntimeError(
-                    "Gemini remained temporarily unavailable after "
+                    "The model provider remained temporarily unavailable after "
                     f"{max_api_retries} retries for case "
                     f"'{case.case_id}'. The fixed evaluation dataset was "
                     "not changed."
@@ -452,7 +452,7 @@ def _answer_with_transient_retry(
             total_wait += delay
 
             print(
-                "  Gemini returned a transient API limit/service error. "
+                "  The model provider returned a transient API error. "
                 f"Retry {retry_count}/{max_api_retries} "
                 f"in {delay:.1f}s...",
                 flush=True,
@@ -462,8 +462,8 @@ def _answer_with_transient_retry(
                 time.sleep(delay)
 
 
-def _is_transient_503(exc: Exception) -> bool:
-    """Recognize Gemini service-unavailable errors without hiding other errors."""
+def _status_code(exc: Exception) -> int | None:
+    """Extract an HTTP-like status code from common provider exceptions."""
 
     status_code = getattr(
         exc,
@@ -471,8 +471,8 @@ def _is_transient_503(exc: Exception) -> bool:
         None,
     )
 
-    if status_code == 503:
-        return True
+    if isinstance(status_code, int):
+        return status_code
 
     code = getattr(
         exc,
@@ -480,44 +480,42 @@ def _is_transient_503(exc: Exception) -> bool:
         None,
     )
 
-    if code == 503:
-        return True
+    if isinstance(code, int):
+        return code
 
     message = str(exc).upper()
 
-    return (
-        "503" in message
-        and "UNAVAILABLE" in message
-    )
+    for candidate in (429, 500, 502, 503, 504):
+        if str(candidate) in message:
+            return candidate
+    return None
 
 
 
-def _is_daily_quota_exhausted(exc: Exception) -> bool:
-    """Detect requests-per-day quota exhaustion separately from transient 429."""
+def _is_transient_service_error(exc: Exception) -> bool:
+    """Recognize retryable provider/server failures."""
+
+    return _status_code(exc) in {500, 502, 503, 504}
+
+
+def _is_non_retryable_quota_exhausted(exc: Exception) -> bool:
+    """Distinguish exhausted account quota from a temporary rate limit."""
 
     message = str(exc).lower()
 
     return (
-        "429" in message
-        and "resource_exhausted" in message
-        and (
-            "requestsperday" in message
-            or "perdayperprojectpermodel" in message
-            or "free_tier_requests" in message
-            or "requests per day" in message
-        )
+        _status_code(exc) == 429
+        and "quota" in message
+        and any(term in message for term in ("exhausted", "exceeded", "insufficient"))
     )
 
 
-def _is_transient_429(exc: Exception) -> bool:
-    """Treat non-daily 429 errors as retryable rate limits."""
-
-    message = str(exc).upper()
+def _is_transient_rate_limit(exc: Exception) -> bool:
+    """Treat a non-quota 429 response as a retryable rate limit."""
 
     return (
-        "429" in message
-        and "RESOURCE_EXHAUSTED" in message
-        and not _is_daily_quota_exhausted(exc)
+        _status_code(exc) == 429
+        and not _is_non_retryable_quota_exhausted(exc)
     )
 
 
@@ -858,7 +856,7 @@ def _usage(generator: Any) -> GenerationUsage:
 
 
 def _warm_embedding(pipeline: Any) -> None:
-    """Load the embedding model before latency measurement without calling Gemini."""
+    """Load the embedding model before latency measurement without calling Mistral."""
 
     candidates = [
         getattr(pipeline, "embedder", None),
@@ -974,7 +972,7 @@ def main() -> None:
         type=int,
         default=5,
         help=(
-            "Retries for transient Gemini 503 UNAVAILABLE errors "
+            "Retries for transient provider 429/5xx errors "
             "per evaluation case."
         ),
     )
@@ -1021,7 +1019,7 @@ def main() -> None:
         "through Naive, Hybrid, and Agentic RAG..."
     )
     print(
-        "This command calls Gemini for answerable cases. "
+        "This command calls Mistral for answerable cases. "
         "Do not edit questions.json between architecture runs."
     )
 
@@ -1044,8 +1042,8 @@ def main() -> None:
             checkpoint_path=checkpoint_path,
             resume=not args.no_resume,
         )
-    except DailyQuotaExhausted as exc:
-        print("\nEvaluation paused because the daily Gemini quota was reached.")
+    except ProviderQuotaExhausted as exc:
+        print("\nEvaluation paused because the model-provider quota was reached.")
         print(str(exc))
         print(
             "Completed results were saved to: "
@@ -1071,7 +1069,7 @@ def main() -> None:
             f"avg tokens={summary.avg_total_tokens_per_query:.1f}, "
             f"avg latency={summary.avg_latency_seconds_per_query:.3f}s, "
             f"avg attempts={summary.avg_retrieval_attempts:.2f}, "
-            f"503 retries={summary.total_transient_api_retries}"
+            f"API retries={summary.total_transient_api_retries}"
         )
 
     print(f"\nJSON: {json_path}")

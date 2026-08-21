@@ -5,280 +5,320 @@
       "transcript": "transcript_00_noise30",
       "fact_recalled": false,
       "input_tokens": 260,
-      "latency_seconds": 1.9279999605714693e-06
+      "output_tokens": 0,
+      "latency_seconds": 1.3999815564602613e-06
     },
     {
       "strategy": "tool_output_masking",
       "transcript": "transcript_00_noise30",
       "fact_recalled": true,
       "input_tokens": 1074,
-      "latency_seconds": 2.6434000005792768e-05
+      "output_tokens": 0,
+      "latency_seconds": 1.470002462156117e-05
     },
     {
       "strategy": "recursive_summarization",
       "transcript": "transcript_00_noise30",
-      "fact_recalled": true,
-      "input_tokens": 932,
-      "latency_seconds": 2.0461000019622588e-05
+      "fact_recalled": false,
+      "input_tokens": 318,
+      "output_tokens": 229,
+      "latency_seconds": 3.101271399995312
     },
     {
       "strategy": "zone_based_pruning",
       "transcript": "transcript_00_noise30",
       "fact_recalled": false,
       "input_tokens": 262,
-      "latency_seconds": 6.725999980972119e-06
+      "output_tokens": 0,
+      "latency_seconds": 8.000002708286047e-06
     },
     {
       "strategy": "sliding_window",
       "transcript": "transcript_01_noise35",
       "fact_recalled": false,
       "input_tokens": 275,
-      "latency_seconds": 7.479999908355239e-07
+      "output_tokens": 0,
+      "latency_seconds": 1.600012183189392e-06
     },
     {
       "strategy": "tool_output_masking",
       "transcript": "transcript_01_noise35",
       "fact_recalled": true,
       "input_tokens": 1205,
-      "latency_seconds": 1.6825000045628258e-05
+      "output_tokens": 0,
+      "latency_seconds": 1.810002140700817e-05
     },
     {
       "strategy": "recursive_summarization",
       "transcript": "transcript_01_noise35",
-      "fact_recalled": true,
-      "input_tokens": 1051,
-      "latency_seconds": 1.7310000032466633e-05
+      "fact_recalled": false,
+      "input_tokens": 377,
+      "output_tokens": 388,
+      "latency_seconds": 2.4804350000049453
     },
     {
       "strategy": "zone_based_pruning",
       "transcript": "transcript_01_noise35",
       "fact_recalled": false,
       "input_tokens": 259,
-      "latency_seconds": 5.8910000007017516e-06
+      "output_tokens": 0,
+      "latency_seconds": 7.499998901039362e-06
     },
     {
       "strategy": "sliding_window",
       "transcript": "transcript_02_noise32",
       "fact_recalled": false,
       "input_tokens": 292,
-      "latency_seconds": 4.139999987273768e-07
+      "output_tokens": 0,
+      "latency_seconds": 1.200009137392044e-06
     },
     {
       "strategy": "tool_output_masking",
       "transcript": "transcript_02_noise32",
       "fact_recalled": true,
       "input_tokens": 1112,
-      "latency_seconds": 9.424000040780811e-06
+      "output_tokens": 0,
+      "latency_seconds": 1.5700003132224083e-05
     },
     {
       "strategy": "recursive_summarization",
       "transcript": "transcript_02_noise32",
-      "fact_recalled": true,
-      "input_tokens": 960,
-      "latency_seconds": 1.1776999997437088e-05
+      "fact_recalled": false,
+      "input_tokens": 313,
+      "output_tokens": 198,
+      "latency_seconds": 1.5974300999951083
     },
     {
       "strategy": "zone_based_pruning",
       "transcript": "transcript_02_noise32",
       "fact_recalled": false,
       "input_tokens": 259,
-      "latency_seconds": 5.4789999808235734e-06
+      "output_tokens": 0,
+      "latency_seconds": 1.1800002539530396e-05
     },
     {
       "strategy": "sliding_window",
       "transcript": "transcript_03_noise40",
       "fact_recalled": false,
       "input_tokens": 285,
-      "latency_seconds": 4.0800000533636194e-07
+      "output_tokens": 0,
+      "latency_seconds": 1.5999830793589354e-06
     },
     {
       "strategy": "tool_output_masking",
       "transcript": "transcript_03_noise40",
       "fact_recalled": true,
       "input_tokens": 1335,
-      "latency_seconds": 1.4308000004348287e-05
+      "output_tokens": 0,
+      "latency_seconds": 3.0800001695752144e-05
     },
     {
       "strategy": "recursive_summarization",
       "transcript": "transcript_03_noise40",
-      "fact_recalled": true,
-      "input_tokens": 1148,
-      "latency_seconds": 1.4563999968686403e-05
+      "fact_recalled": false,
+      "input_tokens": 491,
+      "output_tokens": 501,
+      "latency_seconds": 2.9642437000002246
     },
     {
       "strategy": "zone_based_pruning",
       "transcript": "transcript_03_noise40",
       "fact_recalled": false,
       "input_tokens": 252,
-      "latency_seconds": 6.48599996111443e-06
+      "output_tokens": 0,
+      "latency_seconds": 1.4599994756281376e-05
     },
     {
       "strategy": "sliding_window",
       "transcript": "transcript_04_noise28",
       "fact_recalled": false,
       "input_tokens": 289,
-      "latency_seconds": 3.700000092976552e-07
+      "output_tokens": 0,
+      "latency_seconds": 1.600012183189392e-06
     },
     {
       "strategy": "tool_output_masking",
       "transcript": "transcript_04_noise28",
       "fact_recalled": true,
       "input_tokens": 991,
-      "latency_seconds": 8.159999993040401e-06
+      "output_tokens": 0,
+      "latency_seconds": 1.9800005247816443e-05
     },
     {
       "strategy": "recursive_summarization",
       "transcript": "transcript_04_noise28",
-      "fact_recalled": true,
-      "input_tokens": 862,
-      "latency_seconds": 1.0616999986723386e-05
+      "fact_recalled": false,
+      "input_tokens": 307,
+      "output_tokens": 176,
+      "latency_seconds": 1.5107387000171002
     },
     {
       "strategy": "zone_based_pruning",
       "transcript": "transcript_04_noise28",
       "fact_recalled": false,
       "input_tokens": 256,
-      "latency_seconds": 4.751000005853712e-06
+      "output_tokens": 0,
+      "latency_seconds": 9.800016414374113e-06
     },
     {
       "strategy": "sliding_window",
       "transcript": "transcript_05_noise36",
       "fact_recalled": false,
       "input_tokens": 288,
-      "latency_seconds": 3.6900001987305586e-07
+      "output_tokens": 0,
+      "latency_seconds": 1.700012944638729e-06
     },
     {
       "strategy": "tool_output_masking",
       "transcript": "transcript_05_noise36",
       "fact_recalled": true,
       "input_tokens": 1225,
-      "latency_seconds": 1.0900999996010796e-05
+      "output_tokens": 0,
+      "latency_seconds": 2.5900022592395544e-05
     },
     {
       "strategy": "recursive_summarization",
       "transcript": "transcript_05_noise36",
-      "fact_recalled": true,
-      "input_tokens": 1051,
-      "latency_seconds": 1.8939000028694863e-05
+      "fact_recalled": false,
+      "input_tokens": 335,
+      "output_tokens": 246,
+      "latency_seconds": 1.9372672000026796
     },
     {
       "strategy": "zone_based_pruning",
       "transcript": "transcript_05_noise36",
       "fact_recalled": false,
       "input_tokens": 255,
-      "latency_seconds": 5.857000019204861e-06
+      "output_tokens": 0,
+      "latency_seconds": 1.2400007108226418e-05
     },
     {
       "strategy": "sliding_window",
       "transcript": "transcript_06_noise33",
       "fact_recalled": false,
       "input_tokens": 258,
-      "latency_seconds": 3.8700000004610047e-07
+      "output_tokens": 0,
+      "latency_seconds": 1.300009898841381e-06
     },
     {
       "strategy": "tool_output_masking",
       "transcript": "transcript_06_noise33",
       "fact_recalled": true,
       "input_tokens": 1162,
-      "latency_seconds": 9.261000002425135e-06
+      "output_tokens": 0,
+      "latency_seconds": 2.1599989850074053e-05
     },
     {
       "strategy": "recursive_summarization",
       "transcript": "transcript_06_noise33",
-      "fact_recalled": true,
-      "input_tokens": 1008,
-      "latency_seconds": 1.194599997234036e-05
+      "fact_recalled": false,
+      "input_tokens": 419,
+      "output_tokens": 340,
+      "latency_seconds": 2.099574699997902
     },
     {
       "strategy": "zone_based_pruning",
       "transcript": "transcript_06_noise33",
       "fact_recalled": false,
       "input_tokens": 239,
-      "latency_seconds": 5.51699997686228e-06
+      "output_tokens": 0,
+      "latency_seconds": 1.1500000255182385e-05
     },
     {
       "strategy": "sliding_window",
       "transcript": "transcript_07_noise45",
       "fact_recalled": false,
       "input_tokens": 252,
-      "latency_seconds": 3.9000002516331733e-07
+      "output_tokens": 0,
+      "latency_seconds": 1.500011421740055e-06
     },
     {
       "strategy": "tool_output_masking",
       "transcript": "transcript_07_noise45",
       "fact_recalled": true,
       "input_tokens": 1511,
-      "latency_seconds": 1.1642000004030706e-05
+      "output_tokens": 0,
+      "latency_seconds": 3.1800009310245514e-05
     },
     {
       "strategy": "recursive_summarization",
       "transcript": "transcript_07_noise45",
-      "fact_recalled": true,
-      "input_tokens": 1291,
-      "latency_seconds": 1.8952999994326092e-05
+      "fact_recalled": false,
+      "input_tokens": 403,
+      "output_tokens": 433,
+      "latency_seconds": 2.573772599978838
     },
     {
       "strategy": "zone_based_pruning",
       "transcript": "transcript_07_noise45",
       "fact_recalled": false,
       "input_tokens": 236,
-      "latency_seconds": 6.9310000299083185e-06
+      "output_tokens": 0,
+      "latency_seconds": 1.5099998563528061e-05
     },
     {
       "strategy": "sliding_window",
       "transcript": "transcript_08_noise30",
       "fact_recalled": false,
       "input_tokens": 251,
-      "latency_seconds": 8.079999815890915e-07
+      "output_tokens": 0,
+      "latency_seconds": 1.3999815564602613e-06
     },
     {
       "strategy": "tool_output_masking",
       "transcript": "transcript_08_noise30",
       "fact_recalled": true,
       "input_tokens": 1062,
-      "latency_seconds": 9.333999969385331e-06
+      "output_tokens": 0,
+      "latency_seconds": 2.1199986804276705e-05
     },
     {
       "strategy": "recursive_summarization",
       "transcript": "transcript_08_noise30",
-      "fact_recalled": true,
-      "input_tokens": 919,
-      "latency_seconds": 1.1994999965736497e-05
+      "fact_recalled": false,
+      "input_tokens": 330,
+      "output_tokens": 211,
+      "latency_seconds": 1.802685799979372
     },
     {
       "strategy": "zone_based_pruning",
       "transcript": "transcript_08_noise30",
       "fact_recalled": false,
       "input_tokens": 253,
-      "latency_seconds": 5.1099999609505176e-06
+      "output_tokens": 0,
+      "latency_seconds": 9.899988071992993e-06
     },
     {
       "strategy": "sliding_window",
       "transcript": "transcript_09_noise38",
       "fact_recalled": false,
       "input_tokens": 258,
-      "latency_seconds": 4.2700003177742474e-07
+      "output_tokens": 0,
+      "latency_seconds": 1.300009898841381e-06
     },
     {
       "strategy": "tool_output_masking",
       "transcript": "transcript_09_noise38",
       "fact_recalled": true,
       "input_tokens": 1298,
-      "latency_seconds": 9.99699994963521e-06
+      "output_tokens": 0,
+      "latency_seconds": 2.3100001271814108e-05
     },
     {
       "strategy": "recursive_summarization",
       "transcript": "transcript_09_noise38",
-      "fact_recalled": true,
-      "input_tokens": 1128,
-      "latency_seconds": 1.3486000000284548e-05
+      "fact_recalled": false,
+      "input_tokens": 365,
+      "output_tokens": 239,
+      "latency_seconds": 1.9578922000073362
     },
     {
       "strategy": "zone_based_pruning",
       "transcript": "transcript_09_noise38",
       "fact_recalled": false,
       "input_tokens": 260,
-      "latency_seconds": 6.789999986267503e-06
+      "output_tokens": 0,
+      "latency_seconds": 1.2200005585327744e-05
     }
   ],
   "summary": [
@@ -286,25 +326,29 @@
       "strategy": "sliding_window",
       "fact_recalled": "0/10",
       "avg_input_tokens": 270.8,
+      "avg_output_tokens": 0.0,
       "avg_latency_ms": 0.001
     },
     {
       "strategy": "tool_output_masking",
       "fact_recalled": "10/10",
       "avg_input_tokens": 1197.5,
-      "avg_latency_ms": 0.013
+      "avg_output_tokens": 0.0,
+      "avg_latency_ms": 0.022
     },
     {
       "strategy": "recursive_summarization",
-      "fact_recalled": "10/10",
-      "avg_input_tokens": 1035.0,
-      "avg_latency_ms": 0.015
+      "fact_recalled": "0/10",
+      "avg_input_tokens": 365.8,
+      "avg_output_tokens": 296.1,
+      "avg_latency_ms": 2202.531
     },
     {
       "strategy": "zone_based_pruning",
       "fact_recalled": "0/10",
       "avg_input_tokens": 253.1,
-      "avg_latency_ms": 0.006
+      "avg_output_tokens": 0.0,
+      "avg_latency_ms": 0.011
     }
   ]
 }

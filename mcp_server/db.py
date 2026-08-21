@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
 
 import pymysql
 import pymysql.cursors
 from dotenv import load_dotenv
-
 
 logger = logging.getLogger(__name__)
 ENV_PATH = Path(__file__).resolve().parent / ".env"

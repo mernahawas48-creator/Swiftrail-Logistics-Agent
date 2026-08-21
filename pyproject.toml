@@ -1,0 +1,7 @@
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+# Broad catches are deliberate at MCP/evaluation/graph safety boundaries.
+# Multi-line prompt fragments are kept readable and tested as exact strings.
+ignore = ["BLE001", "ISC004"]

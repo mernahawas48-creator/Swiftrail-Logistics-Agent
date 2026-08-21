@@ -1,11 +1,11 @@
-"""Text generation adapters used by the RAG pipelines."""
+"""Text-generation adapters shared by the Swiftrail RAG pipelines."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 try:
     from dotenv import load_dotenv
@@ -17,15 +17,12 @@ if load_dotenv is not None:
     load_dotenv(project_root / ".env")
 
 
-DEFAULT_GEMINI_MODEL = os.getenv(
-    "GEMINI_MODEL",
-    "gemini-3.6-flash",
-)
+DEFAULT_MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
 
 
 @dataclass(frozen=True, slots=True)
 class GenerationUsage:
-    """Token usage reported by one model generation call."""
+    """Token usage reported by one model-generation call."""
 
     input_tokens: int = 0
     output_tokens: int = 0
@@ -33,55 +30,61 @@ class GenerationUsage:
 
 
 class TextGenerator(Protocol):
-    """Minimal interface required by the RAG pipelines."""
+    """Minimal interface required by the RAG and memory pipelines."""
 
     def generate(self, prompt: str) -> str:
         ...
 
 
-class GeminiTextGenerator:
-    """Generate grounded answers and retain API-reported token usage."""
+class MistralTextGenerator:
+    """Generate grounded text with Mistral and retain reported token usage.
+
+    The LangChain client is created lazily. Unit tests can inject a small
+    object exposing ``invoke(prompt)`` and therefore never need a live API key.
+    """
 
     def __init__(
         self,
-        model_name: str = DEFAULT_GEMINI_MODEL,
+        model_name: str = DEFAULT_MISTRAL_MODEL,
         client: object | None = None,
         temperature: float = 0.1,
+        max_retries: int = 2,
     ):
         if not model_name.strip():
             raise ValueError("model_name cannot be empty.")
-
         if not 0.0 <= temperature <= 2.0:
-            raise ValueError(
-                "temperature must be between 0.0 and 2.0."
-            )
+            raise ValueError("temperature must be between 0.0 and 2.0.")
+        if max_retries < 0:
+            raise ValueError("max_retries cannot be negative.")
 
         self.model_name = model_name
         self.temperature = temperature
+        self.max_retries = max_retries
         self._client = client
         self._usage_history: list[GenerationUsage] = []
 
     @property
     def client(self):
-        """Create the Gemini client only when generation is requested."""
+        """Create the Mistral client only when generation is requested."""
 
         if self._client is None:
             try:
-                from google import genai
+                from langchain_mistralai import ChatMistralAI
             except ImportError as exc:
                 raise RuntimeError(
-                    "Google Gen AI SDK is not installed. Run: "
-                    'pip install "google-genai>=1.0,<2.0"'
+                    "Mistral LangChain integration is not installed. Run: "
+                    'pip install "langchain-mistralai>=1.1,<2.0"'
                 ) from exc
 
-            api_key = os.getenv("GEMINI_API_KEY")
+            api_key = os.getenv("MISTRAL_API_KEY")
             if not api_key:
-                raise RuntimeError(
-                    "GEMINI_API_KEY is not set."
-                )
+                raise RuntimeError("MISTRAL_API_KEY is not set.")
 
-            self._client = genai.Client(
-                api_key=api_key
+            self._client = ChatMistralAI(
+                model=self.model_name,
+                api_key=api_key,
+                temperature=self.temperature,
+                max_retries=self.max_retries,
             )
 
         return self._client
@@ -99,18 +102,9 @@ class GeminiTextGenerator:
         """Return cumulative usage since the last reset."""
 
         return GenerationUsage(
-            input_tokens=sum(
-                item.input_tokens
-                for item in self._usage_history
-            ),
-            output_tokens=sum(
-                item.output_tokens
-                for item in self._usage_history
-            ),
-            total_tokens=sum(
-                item.total_tokens
-                for item in self._usage_history
-            ),
+            input_tokens=sum(item.input_tokens for item in self._usage_history),
+            output_tokens=sum(item.output_tokens for item in self._usage_history),
+            total_tokens=sum(item.total_tokens for item in self._usage_history),
         )
 
     def reset_usage(self) -> None:
@@ -120,81 +114,58 @@ class GeminiTextGenerator:
 
     def generate(self, prompt: str) -> str:
         normalized_prompt = prompt.strip()
-
         if not normalized_prompt:
-            raise ValueError(
-                "The generation prompt cannot be empty."
-            )
+            raise ValueError("The generation prompt cannot be empty.")
 
-        try:
-            from google.genai import types
-        except ImportError as exc:
-            raise RuntimeError(
-                "Google Gen AI SDK is not installed."
-            ) from exc
+        response = self.client.invoke(normalized_prompt)
+        self._usage_history.append(self._extract_usage(response))
 
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=normalized_prompt,
-            config=types.GenerateContentConfig(
-                temperature=self.temperature,
-            ),
-        )
-
-        self._usage_history.append(
-            self._extract_usage(response)
-        )
-
-        answer = (response.text or "").strip()
-
+        answer = self._extract_text(response).strip()
         if not answer:
-            raise RuntimeError(
-                "Gemini returned an empty answer."
-            )
-
+            raise RuntimeError("Mistral returned an empty answer.")
         return answer
 
     @staticmethod
-    def _extract_usage(response: object) -> GenerationUsage:
-        usage = getattr(
-            response,
-            "usage_metadata",
-            None,
-        )
+    def _extract_text(response: object) -> str:
+        content = getattr(response, "content", response)
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts: list[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    parts.append(item)
+                elif isinstance(item, dict) and isinstance(item.get("text"), str):
+                    parts.append(item["text"])
+                else:
+                    text = getattr(item, "text", None)
+                    if isinstance(text, str):
+                        parts.append(text)
+            return "".join(parts)
 
-        if usage is None:
+        text = getattr(response, "text", None)
+        return text if isinstance(text, str) else ""
+
+    @staticmethod
+    def _extract_usage(response: object) -> GenerationUsage:
+        usage: Any = getattr(response, "usage_metadata", None)
+        if not isinstance(usage, dict):
+            metadata = getattr(response, "response_metadata", None)
+            if isinstance(metadata, dict):
+                usage = metadata.get("token_usage") or metadata.get("usage")
+
+        if not isinstance(usage, dict):
             return GenerationUsage()
 
         input_tokens = int(
-            getattr(
-                usage,
-                "prompt_token_count",
-                0,
-            )
-            or 0
+            usage.get("input_tokens") or usage.get("prompt_tokens") or 0
         )
         output_tokens = int(
-            getattr(
-                usage,
-                "candidates_token_count",
-                None,
-            )
-            or getattr(
-                usage,
-                "response_token_count",
-                0,
-            )
-            or 0
+            usage.get("output_tokens") or usage.get("completion_tokens") or 0
         )
         total_tokens = int(
-            getattr(
-                usage,
-                "total_token_count",
-                0,
-            )
-            or (input_tokens + output_tokens)
+            usage.get("total_tokens") or (input_tokens + output_tokens)
         )
-
         return GenerationUsage(
             input_tokens=input_tokens,
             output_tokens=output_tokens,

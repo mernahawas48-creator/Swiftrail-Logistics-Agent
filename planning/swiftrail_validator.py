@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import re
 import shlex
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from .models import EnvironmentFeedback
 
@@ -23,7 +24,7 @@ _ACTION_RE = re.compile(
     r"(?:\*\*)?ACTION:(?:\*\*)?[ \t]*"
     r"(?:\*\*)?(?P<action>[a-z_]+)(?:\*\*)?"
     r"(?:[ \t]+(?P<args>[^\r\n]+))?",
-    re.I | re.M,
+    re.IGNORECASE | re.MULTILINE,
 )
 
 

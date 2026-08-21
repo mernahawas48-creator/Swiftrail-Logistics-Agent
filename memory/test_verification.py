@@ -4,24 +4,24 @@ from memory.verification import MemoryVerifier
 
 
 def _fact(**overrides):
-    base = dict(
-        id=1, customer_id=12, fact_key="customer_risk_level",
-        fact_value="high_risk", version=2, status="active",
-        source_episode_id=1, conflict_reason=None, superseded_by=None,
-        created_at="2026-01-01T00:00:00+00:00",
-        expires_at="2099-01-01T00:00:00+00:00",
-    )
+    base = {
+        "id": 1, "customer_id": 12, "fact_key": "customer_risk_level",
+        "fact_value": "high_risk", "version": 2, "status": "active",
+        "source_episode_id": 1, "conflict_reason": None, "superseded_by": None,
+        "created_at": "2026-01-01T00:00:00+00:00",
+        "expires_at": "2099-01-01T00:00:00+00:00",
+    }
     base.update(overrides)
     return SemanticFact(**base)
 
 
 def _episode(**overrides):
-    base = dict(
-        id=1, customer_id=12, event_type="credit_hold_placed",
-        content={"event_type": "credit_hold_placed", "severity": "severe"},
-        source_session_id="sess-1", reason="90+ days overdue on shipment 512",
-        created_at="2026-01-01T00:00:00+00:00", consolidated=False,
-    )
+    base = {
+        "id": 1, "customer_id": 12, "event_type": "credit_hold_placed",
+        "content": {"event_type": "credit_hold_placed", "severity": "severe"},
+        "source_session_id": "sess-1", "reason": "90+ days overdue on shipment 512",
+        "created_at": "2026-01-01T00:00:00+00:00", "consolidated": False,
+    }
     base.update(overrides)
     return Episode(**base)
 

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from mcp.server.fastmcp import Context
-
 from app_instance import app
-from db import SwiftrailDatabaseError, db_cursor
+from mcp.server.fastmcp import Context
 from schemas import CreditHoldReleaseDecision, ReleaseCreditHoldInput
 from tool_support import (
     authorize_session,
@@ -13,6 +11,8 @@ from tool_support import (
     unexpected_failure,
     validate_request,
 )
+
+from db import SwiftrailDatabaseError, db_cursor
 
 
 @app.tool()

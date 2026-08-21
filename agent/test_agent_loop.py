@@ -1,82 +1,134 @@
-"""Real pytest coverage for AgentLoop.
+"""Unit coverage for AgentLoop without live DB, Qdrant, or Mistral calls."""
 
-The RAG pipeline (HybridRAG) is mocked here since it needs a live
-Qdrant instance + GEMINI_API_KEY -- that's covered separately by
-rag/tests/test_hybrid_rag_integration.py, not duplicated here. This
-file is about the agent loop's own wiring: routing, memory overflow,
-verification fallback, and scratchpad state.
-"""
-
-from unittest.mock import MagicMock
+from typing import Any
 
 import pytest
 
-import agent.agent_loop as agent_loop_module
 from agent.agent_loop import AgentLoop
 
 
+class FakeMCPGateway:
+    def __init__(self, *, success: bool = True):
+        self.success = success
+        self.calls: list[dict[str, Any]] = []
+
+    def call(
+        self,
+        destination: str,
+        query: str,
+        *,
+        session_id: str,
+        customer_id: int | None,
+    ) -> dict[str, Any]:
+        self.calls.append(
+            {
+                "destination": destination,
+                "query": query,
+                "session_id": session_id,
+                "customer_id": customer_id,
+            }
+        )
+        return {
+            "source": "list_customer_credit_holds",
+            "data": {"active_holds": []} if self.success else None,
+            "code": "CREDIT_HOLDS_RETRIEVED" if self.success else "FAILED",
+            "message": "Retrieved credit holds." if self.success else "failed",
+            "success": self.success,
+        }
+
+
 @pytest.fixture
-def agent(monkeypatch):
-    mock_rag = MagicMock()
-    monkeypatch.setattr(agent_loop_module, "HybridRAG", lambda: mock_rag)
-    a = AgentLoop()
-    a._mock_rag = mock_rag  # exposed for tests that need to configure it
-    return a
+def gateway() -> FakeMCPGateway:
+    return FakeMCPGateway()
 
 
-def test_start_creates_a_session(agent):
+@pytest.fixture
+def agent(gateway: FakeMCPGateway, tmp_path) -> AgentLoop:
+    from memory.episodic_store import EpisodicMemory
+    from memory.semantic_store import SemanticMemory
+
+    episodic = EpisodicMemory(str(tmp_path / "episodic.db"))
+    semantic = SemanticMemory(str(tmp_path / "semantic.db"))
+    return AgentLoop(
+        mcp_gateway=gateway,
+        episodic_memory=episodic,
+        semantic_memory=semantic,
+    )
+
+
+def test_start_creates_a_session(agent: AgentLoop):
     session_id = agent.start(customer_id="12")
     assert agent.session_manager.get_session(session_id) is not None
 
 
-def test_process_unknown_session_raises(agent):
-    with pytest.raises(ValueError):
+def test_process_unknown_session_raises(agent: AgentLoop):
+    with pytest.raises(ValueError, match="Session not found"):
         agent.process("not-a-real-session", [{"role": "employee", "content": "hi"}])
 
 
-def test_tool_routing_matches_query_router_labels(agent):
-    """Regression test: QueryRouter returns '*_tool' labels
-    (shipment_tool, invoice_tool, ...) that must resolve to the
-    matching call_mcp_tool category, not fall through to 'unknown'."""
+def test_tool_routing_calls_real_gateway_contract(
+    agent: AgentLoop,
+    gateway: FakeMCPGateway,
+):
     session_id = agent.start(customer_id="12")
     result = agent.process(
         session_id,
-        [{"role": "employee", "content": "what is the credit hold status here"}],
+        [{"role": "employee", "content": "what is the credit hold status?"}],
     )
-    assert result["category"] == "credit_tool"
-    assert result["evidence"]["source"] == "finance_database"
+
+    assert result["category"] == "credit"
+    assert result["evidence"][0]["source"] == "list_customer_credit_holds"
     assert result["verified"] is True
+    assert gateway.calls[0]["customer_id"] == 12
 
 
-def test_context_strategy_is_applied(agent):
+def test_context_strategy_is_applied(agent: AgentLoop):
     session_id = agent.start(customer_id="12")
     messages = [{"role": "employee", "content": "checking shipment 1"}] * 15
     result = agent.process(session_id, messages)
-    # SlidingWindow(max_messages=10) must actually prune the transcript
     assert len(result["context"]) <= 10
 
 
-def test_short_term_overflow_triggers_promote_or_drop(agent):
+def test_short_term_overflow_is_sent_to_promote_drop_router(agent: AgentLoop):
     session_id = agent.start(customer_id="12")
-    result = None
     for i in range(14):
-        result = agent.process(
-            session_id, [{"role": "employee", "content": f"checking shipment {i}"}]
+        agent.process(
+            session_id,
+            [{"role": "employee", "content": f"checking shipment {i}"}],
         )
-    routed_notes = [
-        note for note in result["scratchpad"]
-        if isinstance(note, str) and note.startswith("memory routed ->")
-    ]
-    assert len(routed_notes) >= 1
+
+    assert agent._promote_router is not None
+    assert len(agent._promote_router.decision_log) >= 1
+    assert all(
+        decision.action in {"forget", "episodic"}
+        for decision in agent._promote_router.decision_log
+    )
 
 
-def test_unverified_evidence_returns_safe_fallback(agent):
+def test_unverified_mcp_evidence_returns_safe_fallback(tmp_path):
+    failed_gateway = FakeMCPGateway(success=False)
+    agent = AgentLoop(mcp_gateway=failed_gateway)
     session_id = agent.start(customer_id="12")
-    # A query that matches none of QueryRouter's keyword buckets falls
-    # through to "context", which call_mcp_tool doesn't recognize --
-    # evidence["data"] stays None, so the loop must not fabricate an answer.
-    result = agent.process(session_id, [{"role": "employee", "content": "hello there"}])
+
+    result = agent.process(
+        session_id,
+        [{"role": "employee", "content": "show the credit hold"}],
+    )
+
     assert result["verified"] is False
     assert "cannot provide a reliable answer" in result["answer"]
+    assert result["evidence"] == []
 
 
+def test_operational_route_without_gateway_never_fabricates_data(monkeypatch):
+    monkeypatch.delenv("SWIFTRAIL_EMPLOYEE_ID", raising=False)
+    agent = AgentLoop()
+    session_id = agent.start(customer_id="12")
+    result = agent.process(
+        session_id,
+        [{"role": "employee", "content": "show customer account"}],
+    )
+
+    assert result["verified"] is False
+    assert result["evidence"] == []
+    assert "No MCP gateway" in result["verification"]

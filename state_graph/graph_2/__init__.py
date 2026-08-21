@@ -1,4 +1,4 @@
-from .graph import RateExceptionGraph, GraphStatus
+from .graph import GraphStatus, RateExceptionGraph
 from .state import RateExceptionState
 
-__all__ = ["RateExceptionGraph", "GraphStatus", "RateExceptionState"]
+__all__ = ["GraphStatus", "RateExceptionGraph", "RateExceptionState"]

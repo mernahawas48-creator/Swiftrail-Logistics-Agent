@@ -6,11 +6,11 @@ import pytest
 
 from retrieval_eval.evaluate_architectures import (
     EvaluationCase,
-    DailyQuotaExhausted,
+    ProviderQuotaExhausted,
     _answer_with_transient_retry,
     _dataset_signature,
-    _is_daily_quota_exhausted,
-    _is_transient_503,
+    _is_non_retryable_quota_exhausted,
+    _is_transient_service_error,
     _load_checkpoint,
     _save_checkpoint,
     score_answer,
@@ -103,11 +103,11 @@ class _UsageGenerator:
         return None
 
 
-def test_transient_503_is_detected():
-    assert _is_transient_503(
+def test_transient_service_error_is_detected():
+    assert _is_transient_service_error(
         _Transient503("503 UNAVAILABLE")
     )
-    assert not _is_transient_503(
+    assert not _is_transient_service_error(
         RuntimeError("400 BAD REQUEST")
     )
 
@@ -139,7 +139,7 @@ def test_case_retries_transient_503_and_then_succeeds(
     assert latency >= 0.0
 
 
-def test_non_503_error_is_not_hidden():
+def test_non_transient_error_is_not_hidden():
     class BrokenPipeline:
         def answer(self, query, *, role, top_k):
             raise ValueError("broken")
@@ -156,18 +156,14 @@ def test_non_503_error_is_not_hidden():
             initial_retry_delay=0.0,
         )
 
-class _Daily429(Exception):
+class _Quota429(Exception):
     status_code = 429
 
 
-def test_daily_quota_is_detected_and_not_retried():
-    exc = _Daily429(
-        "429 RESOURCE_EXHAUSTED quotaId="
-        "GenerateRequestsPerDayPerProjectPerModel-FreeTier "
-        "free_tier_requests"
-    )
+def test_non_retryable_quota_is_detected_and_not_retried():
+    exc = _Quota429("429 account quota exceeded")
 
-    assert _is_daily_quota_exhausted(exc)
+    assert _is_non_retryable_quota_exhausted(exc)
 
     class QuotaPipeline:
         def __init__(self):
@@ -179,7 +175,7 @@ def test_daily_quota_is_detected_and_not_retried():
 
     pipeline = QuotaPipeline()
 
-    with pytest.raises(DailyQuotaExhausted):
+    with pytest.raises(ProviderQuotaExhausted):
         _answer_with_transient_retry(
             pipeline=pipeline,
             generator=_UsageGenerator(),
@@ -221,7 +217,7 @@ def test_checkpoint_round_trip(tmp_path):
     _save_checkpoint(
         path,
         dataset_signature=signature,
-        model_name="gemini-test",
+        model_name="mistral-test",
         results=[result],
     )
 
@@ -230,6 +226,5 @@ def test_checkpoint_round_trip(tmp_path):
     )
 
     assert loaded_signature == signature
-    assert model_name == "gemini-test"
+    assert model_name == "mistral-test"
     assert results == [result]
-

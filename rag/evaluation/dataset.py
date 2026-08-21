@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from rag.evaluation.models import EvaluationCase
-
 
 DEFAULT_DATASET_PATH = (
     Path(__file__).resolve().parent
@@ -38,7 +37,7 @@ def load_evaluation_cases(
         ) from exc
 
     if not isinstance(payload, list):
-        raise ValueError(
+        raise TypeError(
             "Evaluation dataset root must be a list."
         )
 

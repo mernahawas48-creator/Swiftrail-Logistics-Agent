@@ -1,27 +1,30 @@
 from typing import Any
 
+from rag.naive_rag.generator import MistralTextGenerator, TextGenerator
+
 from .base import ContextStrategy
-from rag.naive_rag.generator import GeminiTextGenerator, TextGenerator
 
 
 class RecursiveSummarization(ContextStrategy):
     """Replace older messages with a model-generated compact summary.
 
-    Needs a real TextGenerator (defaults to GeminiTextGenerator, which
-    reads GEMINI_API_KEY from .env). Unlike the previous implementation,
+    Needs a real TextGenerator (defaults to MistralTextGenerator, which
+    reads MISTRAL_API_KEY from .env). Unlike the previous implementation,
     this actually asks a model to compress old_messages -- it can lose
     detail and it spends real output tokens, which is the whole point
     of the strategy and the tradeoff the comparison table needs to show
     honestly.
     """
 
-    def init(
+    def __init__(
         self,
         keep_last_messages: int = 5,
         generator: TextGenerator | None = None,
     ):
+        if keep_last_messages < 1:
+            raise ValueError("keep_last_messages must be at least 1.")
         self.keep_last_messages = keep_last_messages
-        self.generator = generator or GeminiTextGenerator()
+        self.generator = generator or MistralTextGenerator()
 
     def apply(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if len(messages) <= self.keep_last_messages:

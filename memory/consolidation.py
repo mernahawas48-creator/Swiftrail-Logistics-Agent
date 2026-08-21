@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from memory.episodic_store import Episode, EpisodicMemory
+from memory.episodic_store import EpisodicMemory
 from memory.semantic_store import SemanticFact, SemanticMemory
 
 

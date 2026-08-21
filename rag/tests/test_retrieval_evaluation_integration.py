@@ -15,7 +15,6 @@ from rag.evaluation.retrievers import (
     HybridRetriever,
 )
 
-
 pytestmark = pytest.mark.skipif(
     os.getenv(
         "RUN_RETRIEVAL_EVALUATION_INTEGRATION"

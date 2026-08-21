@@ -20,6 +20,9 @@ Thumbs.db
 
 # Runtime output
 *.log
+*.db
+*.sqlite
+*.sqlite3
 coverage.xml
 htmlcov/
 

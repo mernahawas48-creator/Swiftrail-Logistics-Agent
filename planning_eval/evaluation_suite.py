@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from planning_eval.test_cases import severe_hold_sales_rep_case, above_authority_rate_case
+
 from planning.environment import Environment
+from planning_eval.test_cases import (
+    above_authority_rate_case,
+    severe_hold_sales_rep_case,
+)
+
 
 @dataclass(frozen=True)
 class EvaluationCase:

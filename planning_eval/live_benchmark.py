@@ -39,7 +39,6 @@ from planning_eval.benchmark_cases import (
 )
 from planning_eval.full_benchmark import FakeAgent, ToolCaller
 
-
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS_DIR = ROOT / "artifacts"
 
@@ -114,7 +113,7 @@ class CallCounter(BaseCallbackHandler):
 
 
 class _StructuredCompatibleRunner:
-    def __init__(self, owner: "TextCompatibleLLM", runner, schema_name: str):
+    def __init__(self, owner: TextCompatibleLLM, runner, schema_name: str):
         self._owner = owner
         self._runner = runner
         self._schema_name = schema_name

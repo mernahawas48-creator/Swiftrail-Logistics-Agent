@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
-from typing import Any, Iterable, Sequence
+from typing import Any, ClassVar
 
 from qdrant_client import QdrantClient, models
 
@@ -25,10 +26,10 @@ class VectorSearchResult:
 class QdrantVectorStore:
     """Store and retrieve Swiftrail chunk embeddings in Qdrant."""
 
-    PAYLOAD_INDEXES: dict[
+    PAYLOAD_INDEXES: ClassVar[dict[
         str,
         models.PayloadSchemaType,
-    ] = {
+    ]] = {
         "doc_id": models.PayloadSchemaType.KEYWORD,
         "status": models.PayloadSchemaType.KEYWORD,
         "department": models.PayloadSchemaType.KEYWORD,

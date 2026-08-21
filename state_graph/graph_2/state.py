@@ -32,5 +32,5 @@ class RateExceptionState:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "RateExceptionState":
+    def from_dict(cls, data: dict[str, Any]) -> RateExceptionState:
         return cls(**data)

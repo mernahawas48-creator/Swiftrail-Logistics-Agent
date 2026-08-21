@@ -26,13 +26,12 @@ memory.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
-from typing import Any, Sequence, Union
+from collections.abc import Sequence
+from dataclasses import dataclass
 
 from memory.episodic_store import Episode
 from memory.semantic_store import SemanticFact
-
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*", re.IGNORECASE)
 STOPWORDS = {
@@ -43,7 +42,7 @@ STOPWORDS = {
     "when", "where", "which", "who", "why", "will", "with", "would",
 }
 
-MemoryItem = Union[SemanticFact, Episode]
+MemoryItem = SemanticFact | Episode
 
 STALE_STATUSES = {"superseded", "expired"}
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from app_instance import app
-from db import SwiftrailDatabaseError, db_cursor
 from schemas import (
     CustomerCreditHoldsInput,
     CustomerInvoicesInput,
@@ -17,6 +16,8 @@ from tool_support import (
     unexpected_failure,
     validate_request,
 )
+
+from db import SwiftrailDatabaseError, db_cursor
 
 
 @app.tool()

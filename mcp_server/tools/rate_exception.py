@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from mcp.server.fastmcp import Context
-
 from app_instance import app
-from db import SwiftrailDatabaseError, db_cursor
+from mcp.server.fastmcp import Context
 from schemas import ApproveRateExceptionInput, RateExceptionDecision
 from tool_support import (
     authorize_session,
@@ -14,6 +12,7 @@ from tool_support import (
     validate_request,
 )
 
+from db import SwiftrailDatabaseError, db_cursor
 
 AUTO_APPROVAL_LIMIT = 15.0
 HARD_DISCOUNT_LIMIT = 50.0
@@ -172,22 +171,6 @@ async def approve_rate_exception(
                 "status": final_status,
                 "approved_by": identity.employee_id,
                 "reviewer_note": decision.reviewer_note,
-            },
-        )
-    except SwiftrailDatabaseError as db_error:
-        return database_failure(db_error)
-    except Exception:
-        return unexpected_failure("rate-exception resolution")
-
-        return ok(
-            "RATE_EXCEPTION_RESOLVED",
-            f"The rate exception was {final_status} by the finance manager.",
-            {
-                "exception_id": validated.exception_id,
-                "discount_pct": discount,
-                "status": final_status,
-                "approved_by": identity.employee_id,
-                "reviewer_note": result.data.reviewer_note,
             },
         )
     except SwiftrailDatabaseError as db_error:

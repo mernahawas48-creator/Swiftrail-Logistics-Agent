@@ -20,7 +20,6 @@ from planning.swiftrail_subtask import (
 from planning_eval.evaluate_self_correction import run_case
 from planning_eval.evaluation_suite import fixed_cases
 
-
 ARTIFACTS_DIR = Path("artifacts")
 
 

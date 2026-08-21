@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -45,7 +45,7 @@ Return JSON only with:
         response = self.llm.invoke(prompt)
         text = getattr(response, "content", response)
         if not isinstance(text, str):
-            raise RuntimeError("Constrained ReAct model returned unsupported content")
+            raise TypeError("Constrained ReAct model returned unsupported content")
         try:
             data = json.loads(text)
         except json.JSONDecodeError as exc:

@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from types import SimpleNamespace
 
 import pytest
 
+from rag.chunking.chunker import MarkdownChunker
 from rag.embeddings.embedder import EmbeddedChunk
 from rag.ingestion.pipeline import IngestionPipeline
 from rag.loading.loader import CorpusLoader
-from rag.chunking.chunker import MarkdownChunker
 
 
 class StubEmbedder:

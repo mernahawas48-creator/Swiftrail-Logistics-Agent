@@ -10,7 +10,6 @@ from rag.metadata.schema import SearchFilters
 from rag.vector_store.config import VectorStoreSettings
 from rag.vector_store.qdrant_store import QdrantVectorStore
 
-
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_QDRANT_INTEGRATION") != "1",
     reason=(
@@ -21,7 +20,7 @@ pytestmark = pytest.mark.skipif(
 
 
 @dataclass(frozen=True, slots=True)
-class TestMetadata:
+class SampleMetadata:
     doc_id: str
     title: str
     version: str
@@ -39,11 +38,11 @@ class TestMetadata:
 
 
 @dataclass(frozen=True, slots=True)
-class TestEmbeddedChunk:
+class SampleEmbeddedChunk:
     chunk_id: str
     vector: tuple[float, ...]
     text: str
-    metadata: TestMetadata
+    metadata: SampleMetadata
 
 
 def _vector(first: float, second: float):
@@ -71,11 +70,11 @@ def test_real_qdrant_ann_and_role_filtering():
     )
     store = QdrantVectorStore(settings=settings)
 
-    sales_chunk = TestEmbeddedChunk(
+    sales_chunk = SampleEmbeddedChunk(
         chunk_id=str(uuid.uuid4()),
         vector=_vector(1.0, 0.0),
         text="Sales representatives may approve up to 15 percent.",
-        metadata=TestMetadata(
+        metadata=SampleMetadata(
             doc_id="rate_exception_policy",
             title="Rate Exception Policy",
             version="1.0",
@@ -98,11 +97,11 @@ def test_real_qdrant_ann_and_role_filtering():
         ),
     )
 
-    finance_only_chunk = TestEmbeddedChunk(
+    finance_only_chunk = SampleEmbeddedChunk(
         chunk_id=str(uuid.uuid4()),
         vector=_vector(0.0, 1.0),
         text="Finance reviews portfolio risk priority.",
-        metadata=TestMetadata(
+        metadata=SampleMetadata(
             doc_id="portfolio_risk_guidelines",
             title="Portfolio Risk Guidelines",
             version="1.0",

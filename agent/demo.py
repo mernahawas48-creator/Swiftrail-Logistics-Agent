@@ -18,7 +18,6 @@ import json
 
 from client import SwiftrailAgent
 
-
 SESSION_ID = "demo-session-001"
 
 

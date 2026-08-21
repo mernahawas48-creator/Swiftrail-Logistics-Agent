@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 from agent.client import SwiftrailAgent
@@ -38,7 +37,9 @@ class GraphMCPClient:
             raise RuntimeError(f"MCP tool {tool_name} returned an error")
         decoded = self.client.decode_tool_result(result)
         if not isinstance(decoded, dict):
-            raise RuntimeError(f"MCP tool {tool_name} returned an invalid response")
+            raise RuntimeError(  # noqa: TRY004 - malformed external response
+                f"MCP tool {tool_name} returned an invalid response"
+            )
         return decoded
 
     async def list_tools(self) -> list[str]:

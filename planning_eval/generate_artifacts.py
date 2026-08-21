@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from planning.environment import Environment
 from planning.algorithms.reflexion import reflexion
 from planning.algorithms.self_refine import reflect_and_refine
+from planning.environment import Environment
 from planning_eval.evaluation_suite import fixed_cases
 
 
@@ -53,7 +53,6 @@ def run():
 
         # Grounded vs ungrounded evidence.
         grounded_bad = env.evaluate(case.bad_candidate)
-        grounded_good = env.evaluate(case.good_candidate)
         ungrounded_accepts_bad = True  # Deliberate baseline: no DB/MCP evidence.
         grounding_trace = {
             "case": case.name,

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
 from rag.hybrid_search.search import HybridSearch
 from rag.naive_rag.generator import (
-    GeminiTextGenerator,
+    MistralTextGenerator,
     TextGenerator,
 )
 from rag.naive_rag.pipeline import NO_CONTEXT_ANSWER
@@ -51,7 +52,7 @@ class HybridRAG:
         verifier: SelfRAGVerifier | None = None,
     ):
         self.searcher = searcher or HybridSearch()
-        self.generator = generator or GeminiTextGenerator()
+        self.generator = generator or MistralTextGenerator()
         self.verifier = verifier or SelfRAGVerifier()
 
     def answer(

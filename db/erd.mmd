@@ -8,7 +8,7 @@ erDiagram
     CUSTOMERS ||--o{ INVOICES : "billed"
     CUSTOMERS ||--o{ CREDIT_HOLDS : "held"
 
-    SHIPMENTS ||--|| INVOICES : "billed via"
+    SHIPMENTS o|--o| INVOICES : "optionally billed via"
     SHIPMENTS ||--o{ RATE_EXCEPTIONS : "discounted via"
 
     EMPLOYEES {

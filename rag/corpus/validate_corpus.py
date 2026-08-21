@@ -3,10 +3,8 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
-from pathlib import Path
 
 from pydantic import TypeAdapter
-
 from rag.config import CORPUS_ROOT, MANIFEST_PATH
 from rag.models import DocumentMetadata
 
