@@ -6,8 +6,8 @@ from agent.mcp_graph_client import GraphMCPClient
 class LiveRateExceptionTools:
     """Live MCP implementation used by Graph 2 in production/demo mode."""
 
-    def __init__(self, url: str = "http://127.0.0.1:8000/mcp"):
-        self.client = GraphMCPClient(url)
+    def __init__(self, url: str = "http://127.0.0.1:8000/mcp", *, agent_id: str = "state_graph_2", permission_checker=None):
+        self.client = GraphMCPClient(url, agent_id=agent_id, permission_checker=permission_checker)
 
     async def authenticate(self, session_id: str, employee_id: int):
         return await self.client.authenticate(session_id, employee_id)
@@ -26,3 +26,4 @@ class LiveRateExceptionTools:
             "approve_rate_exception",
             {"session_id": session_id, "exception_id": exception_id, "decision": {"approve": decision, "reviewer_note": note}},
         )
+
