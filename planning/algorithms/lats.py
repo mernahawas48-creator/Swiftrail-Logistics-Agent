@@ -33,8 +33,8 @@ class ValueEstimate(BaseModel):
 class LATSNode:
     state: str
     action: str = "root"
-    parent: "LATSNode | None" = field(default=None, repr=False)
-    children: list["LATSNode"] = field(default_factory=list, repr=False)
+    parent: LATSNode | None = field(default=None, repr=False)
+    children: list[LATSNode] = field(default_factory=list, repr=False)
     visits: int = 0
     value_sum: float = 0.0
     environment_score: float = 0.0

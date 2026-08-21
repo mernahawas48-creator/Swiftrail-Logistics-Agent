@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-
 DEFAULT_DB_PATH = os.environ.get(
     "MEMORY_DB_PATH",
     os.path.join(os.path.dirname(__file__), "memory_store.db"),

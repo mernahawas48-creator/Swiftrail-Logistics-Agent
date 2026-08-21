@@ -7,7 +7,7 @@ from .schema import (
 )
 
 __all__ = [
-    "DocumentMetadataSchema",
     "ChunkMetadataSchema",
+    "DocumentMetadataSchema",
     "SearchFilters",
 ]

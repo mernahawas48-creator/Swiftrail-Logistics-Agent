@@ -27,7 +27,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class ShipmentResolutionEnvironment(Environment):
-    def __init__(self, agent: "SwiftrailAgent", session_id: str):
+    def __init__(self, agent: SwiftrailAgent, session_id: str):
         # Deliberately does not call super().__init__(); this environment
         # has no randomized fallback path to configure.
         self.agent = agent

@@ -1,17 +1,14 @@
 import asyncio
 import sys
 
-from app_instance import app
-
-import tools.read_tools
-import tools.rate_exception
-import tools.credit_hold
 import tools.auth
+import tools.credit_hold
 import tools.portfolio
+import tools.rate_exception
+import tools.read_tools
 import tools.resources_prompts
-
+from app_instance import app
 from runtime_setup import build_runtime_manager
-
 
 # Build runtime agent/tool management AFTER all MCP tools are registered.
 runtime_tool_manager, agent_registry = build_runtime_manager(

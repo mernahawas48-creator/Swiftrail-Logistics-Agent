@@ -4,10 +4,10 @@ import asyncio
 
 import pytest
 
-from .divergence import compute_divergence
-from .models import Plan, Task
-from .swiftrail_subtask import SubtaskKind, SubtaskMeta, SwiftrailPlan
 from .algorithms.dynamic_decomposition import DynamicStep
+from .divergence import compute_divergence
+from .models import Plan
+from .swiftrail_subtask import SubtaskKind, SubtaskMeta, SwiftrailPlan
 
 
 def _tool_meta(tool_name: str) -> SubtaskMeta:
@@ -45,7 +45,7 @@ def _static_plan() -> SwiftrailPlan:
 
 
 def test_cycle_is_rejected_at_construction_time():
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError, match="Cycle detected"):
         Plan.model_validate(
             {
                 "goal": "cyclic",

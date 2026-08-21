@@ -11,7 +11,6 @@ from rag.metadata.schema import SearchFilters
 from rag.vector_store.config import VectorStoreSettings
 from rag.vector_store.qdrant_store import QdrantVectorStore
 
-
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_INGESTION_INTEGRATION") != "1",
     reason=(

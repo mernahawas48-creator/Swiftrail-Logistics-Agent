@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, ClassVar
 
 
 @dataclass
@@ -36,7 +37,7 @@ class RuntimeToolManager:
     still has permission to use it.
     """
 
-    PROTECTED_TOOLS = {"authenticate"}
+    PROTECTED_TOOLS: ClassVar[frozenset[str]] = frozenset({"authenticate"})
 
     def __init__(self, server: Any, tool_functions: dict[str, Callable[..., Any]]):
         self.server = server

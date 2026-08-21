@@ -6,6 +6,7 @@ from planning_eval.test_cases import (
     severe_hold_sales_rep_case,
 )
 
+
 def test_grounded_catches_sales_rep_severe_hold_release():
     _, employee_id, snapshot = severe_hold_sales_rep_case()
     env = Environment(shipment_id=3, employee_id=employee_id, snapshot_provider=lambda: snapshot)

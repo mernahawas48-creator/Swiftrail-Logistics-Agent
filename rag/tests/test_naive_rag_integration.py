@@ -6,7 +6,6 @@ import pytest
 
 from rag.naive_rag.pipeline import NaiveRAG
 
-
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_NAIVE_RAG_INTEGRATION") != "1",
     reason=(

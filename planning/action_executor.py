@@ -21,7 +21,7 @@ class ActionExecutionResult:
 async def execute_safe_actions(
     *,
     plan_text: str,
-    agent: "SwiftrailAgent",
+    agent: SwiftrailAgent,
     session_id: str,
     shipment_id: int,
     customer_id: int,
@@ -165,7 +165,7 @@ async def execute_safe_actions(
 
 
 async def _call(
-    agent: "SwiftrailAgent",
+    agent: SwiftrailAgent,
     tool_name: str,
     request: dict[str, Any],
 ) -> dict[str, Any]:
@@ -176,7 +176,7 @@ async def _call(
     payload = agent.decode_tool_result(raw)
 
     if not isinstance(payload, dict):
-        raise RuntimeError(
+        raise RuntimeError(  # noqa: TRY004 - malformed external MCP response
             f"{tool_name} returned a malformed response."
         )
 

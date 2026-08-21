@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import Field
-
 from app_instance import app
+from pydantic import Field
 
 
 @app.resource("policy://credit-and-discount-authority")

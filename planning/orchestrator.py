@@ -22,13 +22,13 @@ from typing import TYPE_CHECKING
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
+from .action_executor import ActionExecutionResult, execute_safe_actions
 from .algorithms.decomposition import decompose_blocked_shipment, execute_plan_swiftrail
 from .algorithms.dynamic_decomposition import dynamic_decompose_blocked_shipment
 from .algorithms.environment import Environment
 from .divergence import compute_divergence
 from .execution_adapter import SubtaskExecutionAdapter
 from .trace_logger import log_decomposition_first_run, log_divergence, log_dynamic_run
-from .action_executor import ActionExecutionResult, execute_safe_actions
 
 if TYPE_CHECKING:  # pragma: no cover
     from agent.client import SwiftrailAgent
@@ -54,7 +54,7 @@ class SwiftrailPlanningOrchestrator:
     ``Environment`` -- see algorithms/environment.py -- not the toolkit's randomized evaluator. """
     def __init__(
         self,
-        agent: "SwiftrailAgent",
+        agent: SwiftrailAgent,
         session_id: str,
         llm: BaseChatModel,
         employee_id: int,

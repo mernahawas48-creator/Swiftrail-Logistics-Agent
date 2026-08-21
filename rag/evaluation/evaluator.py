@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 import json
+from collections.abc import Sequence
+from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Protocol, Sequence
+from typing import Any, Protocol
 
 from rag.evaluation.metrics import (
     access_safe_at_k,
@@ -45,7 +46,7 @@ class RetrievalEvaluator:
         ks: Sequence[int] = (1, 3, 5),
     ):
         normalized_ks = tuple(
-            sorted(set(int(k) for k in ks))
+            sorted({int(k) for k in ks})
         )
 
         if not normalized_ks:

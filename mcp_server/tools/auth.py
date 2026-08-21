@@ -2,15 +2,20 @@ from __future__ import annotations
 
 from threading import RLock
 
-from mcp.server.fastmcp import Context
-
-from app_instance import app
-from db import SwiftrailDatabaseError, db_cursor
-from schemas import AuthenticateInput
 import session as session_state
-from tool_support import database_failure, fail, ok, unexpected_failure, validate_request
-from tools.portfolio import list_portfolio_credit_exposure
+from app_instance import app
+from mcp.server.fastmcp import Context
+from schemas import AuthenticateInput
+from tool_support import (
+    database_failure,
+    fail,
+    ok,
+    unexpected_failure,
+    validate_request,
+)
 
+from db import SwiftrailDatabaseError, db_cursor
+from tools.portfolio import list_portfolio_credit_exposure
 
 _tool_state_lock = RLock()
 _portfolio_tool_exposed = False

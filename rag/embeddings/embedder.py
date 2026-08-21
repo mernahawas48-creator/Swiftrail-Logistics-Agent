@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Protocol, Sequence
+from typing import Protocol
 
 from rag.chunking.chunker import ChunkMetadata, DocumentChunk
-
 
 DEFAULT_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 

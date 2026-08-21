@@ -4,12 +4,11 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from .environment import Environment
 from .algorithms.reflexion import ReflexionResult, reflexion
 from .algorithms.self_refine import ReflectionResult, reflect_and_refine
+from .environment import Environment
 
-
-_ID_RE = re.compile(r"\b(?:shipment|employee)\s*#?\s*(\d+)\b", re.I)
+_ID_RE = re.compile(r"\b(?:shipment|employee)\s*#?\s*(\d+)\b", re.IGNORECASE)
 
 
 @dataclass(slots=True)

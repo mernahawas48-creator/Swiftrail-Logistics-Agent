@@ -22,6 +22,7 @@ from planning.algorithms.dynamic_decomposition import (
 )
 from planning.algorithms.environment import Environment, RandomEnvironment
 from planning.algorithms.lats import LATSActionBatch, ValueEstimate, lats
+from planning.algorithms.plan_and_solve import plan_and_solve
 from planning.algorithms.reflexion import reflexion
 from planning.algorithms.self_refine import reflect_and_refine
 from planning.algorithms.tree_of_thoughts import (
@@ -29,7 +30,6 @@ from planning.algorithms.tree_of_thoughts import (
     ThoughtEvaluation,
     tree_of_thoughts,
 )
-from planning.algorithms.plan_and_solve import plan_and_solve
 from planning.execution_adapter import SubtaskExecutionAdapter
 from planning.swiftrail_subtask import SubtaskKind
 from planning_eval.benchmark_cases import (
@@ -38,7 +38,6 @@ from planning_eval.benchmark_cases import (
     severe_hold_sales_rep_case,
     stable_minor_hold_case,
 )
-
 
 ARTIFACTS_DIR = Path("artifacts")
 DEMO_PATH = Path("demo") / "planning_demo_transcript.md"
@@ -75,7 +74,7 @@ class BenchmarkRow:
 
 
 class _StructuredRunner:
-    def __init__(self, owner: "BenchmarkLLM", schema):
+    def __init__(self, owner: BenchmarkLLM, schema):
         self.owner = owner
         self.schema = schema
 

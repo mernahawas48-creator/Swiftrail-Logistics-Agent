@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+
+from planning.algorithms.reflexion import reflexion
 from planning.environment import Environment
 from planning_eval.evaluation_suite import fixed_cases
-from planning.algorithms.reflexion import reflexion
 
 
 class Response:

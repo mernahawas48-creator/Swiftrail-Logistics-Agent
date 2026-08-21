@@ -9,7 +9,6 @@ from typing import Any
 
 from rag.loading.loader import LoadedDocument
 
-
 SECTION_PATTERN = re.compile(
     r"^##\s+([A-Z]{2,5}-\d+)\s+[—-]\s+(.+?)\s*$",
     re.MULTILINE,

@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CORPUS_ROOT = PROJECT_ROOT / "rag" / "corpus"
 DEFAULT_MANIFEST_PATH = CORPUS_ROOT / "manifest.json"
@@ -89,7 +88,7 @@ class CorpusLoader:
             ) from exc
 
         if not isinstance(data, list):
-            raise ValueError(
+            raise TypeError(
                 "Corpus manifest must contain a JSON list of documents."
             )
 
@@ -97,7 +96,7 @@ class CorpusLoader:
             raise ValueError("Corpus manifest does not contain documents.")
 
         if not all(isinstance(item, dict) for item in data):
-            raise ValueError(
+            raise TypeError(
                 "Every corpus manifest entry must be a JSON object."
             )
 
@@ -128,7 +127,7 @@ class CorpusLoader:
             )
 
         if not isinstance(entry["access_roles"], list):
-            raise ValueError(
+            raise TypeError(
                 f"Document {entry['doc_id']} access_roles must be a list."
             )
 

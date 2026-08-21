@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable, TypeVar
-
-from pydantic import BaseModel, ValidationError
+from collections.abc import Iterable
+from typing import Any, TypeVar
 
 import session as session_state
-from db import SwiftrailDatabaseError
+from pydantic import BaseModel, ValidationError
 
+from db import SwiftrailDatabaseError
 
 logger = logging.getLogger(__name__)
 ModelT = TypeVar("ModelT", bound=BaseModel)

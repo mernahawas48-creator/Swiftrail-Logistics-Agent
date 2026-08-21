@@ -1,8 +1,8 @@
 import asyncio
 
-from platform_app.admin.services import AdminService
 from mcp_server.agent_registry import AgentRegistry
 from mcp_server.runtime_tool_manager import RuntimeToolManager
+from platform_app.admin.services import AdminService
 
 
 class FakeTool:

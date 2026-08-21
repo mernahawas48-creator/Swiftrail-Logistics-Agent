@@ -5,11 +5,11 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 from rag.metadata.schema import SearchFilters
-
 
 TOKEN_PATTERN = re.compile(
     r"[a-z0-9]+(?:-[a-z0-9]+)*",

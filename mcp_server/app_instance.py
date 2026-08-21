@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from pydantic import ConfigDict
-
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase
 from mcp.server.lowlevel.server import NotificationOptions
+from pydantic import ConfigDict
 
 
 def _enforce_strict_generated_tool_arguments() -> None:

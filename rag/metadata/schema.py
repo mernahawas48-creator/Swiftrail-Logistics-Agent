@@ -12,7 +12,6 @@ from pydantic import (
     field_validator,
 )
 
-
 Role = Literal["sales_rep", "finance_manager"]
 DocumentStatus = Literal["active", "archived"]
 

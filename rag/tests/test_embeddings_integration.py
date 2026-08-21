@@ -8,7 +8,6 @@ from rag.chunking.chunker import MarkdownChunker
 from rag.embeddings.embedder import ChunkEmbedder
 from rag.loading.loader import CorpusLoader
 
-
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_EMBEDDING_INTEGRATION") != "1",
     reason=(

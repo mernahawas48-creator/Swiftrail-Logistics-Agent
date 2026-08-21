@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from langchain_mistralai import ChatMistralAI
 
 from .algorithms import (
+    RandomEnvironment,
     decompose_goal,
     dynamic_decomposition,
     execute_plan,
@@ -18,12 +19,10 @@ from .algorithms import (
     flatten_lats_tree,
     lats,
     plan_and_solve,
-    reflexion,
     reflect_and_refine,
-    RandomEnvironment,
+    reflexion,
     tree_of_thoughts,
 )
-
 
 ROOT = Path(__file__).resolve().parents[1]
 

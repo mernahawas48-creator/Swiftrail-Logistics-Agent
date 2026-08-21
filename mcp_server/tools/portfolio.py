@@ -1,19 +1,19 @@
 from __future__ import annotations
 
+from app_instance import app
 from mcp.server.fastmcp import Context
-from mcp.types import SamplingMessage, TextContent as SamplingTextContent
-
-from db import SwiftrailDatabaseError, db_cursor
+from mcp.types import SamplingMessage
+from mcp.types import TextContent as SamplingTextContent
 from schemas import PortfolioExposureInput, PortfolioRiskSweepInput
 from tool_support import (
     authorize_session,
     database_failure,
-    fail,
     ok,
     unexpected_failure,
     validate_request,
 )
-from app_instance import app
+
+from db import SwiftrailDatabaseError, db_cursor
 
 
 def list_portfolio_credit_exposure(request: PortfolioExposureInput) -> dict:

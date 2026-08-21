@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-from enum import Enum
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from enum import Enum
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -10,7 +10,6 @@ from pydantic import BaseModel, ConfigDict
 
 from ..models import Plan
 from ..swiftrail_subtask import SubtaskKind, SubtaskMeta, SwiftrailPlan
-
 
 PLANNER_SYSTEM = """You are a careful task-decomposition planner.
 Produce a small executable DAG, not a prose checklist. Every task must make a concrete

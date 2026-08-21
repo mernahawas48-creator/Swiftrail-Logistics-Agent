@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-
 EvaluationType = Literal[
     "relevance",
     "access_control",
@@ -28,7 +27,7 @@ class EvaluationCase:
     def from_dict(
         cls,
         payload: dict[str, Any],
-    ) -> "EvaluationCase":
+    ) -> EvaluationCase:
         required = {
             "case_id",
             "query",

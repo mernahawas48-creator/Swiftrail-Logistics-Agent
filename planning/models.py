@@ -21,7 +21,7 @@ class Plan(BaseModel):
     tasks: list[Task] = Field(min_length=1, max_length=8)
 
     @model_validator(mode="after")
-    def validate_dag(self) -> "Plan":
+    def validate_dag(self) -> Plan:
         ids = [task.id for task in self.tasks]
         if len(ids) != len(set(ids)):
             raise ValueError("Task ids must be unique")

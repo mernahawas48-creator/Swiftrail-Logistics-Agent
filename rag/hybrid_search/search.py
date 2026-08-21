@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
-from typing import Any, Sequence
+from typing import Any
 
 from rag.chunking.chunker import MarkdownChunker
 from rag.embeddings.embedder import ChunkEmbedder
 from rag.hybrid_search.bm25 import BM25Index
 from rag.loading.loader import CorpusLoader
 from rag.metadata.schema import SearchFilters
-
 
 SECTION_ID_PATTERN = re.compile(
     r"^[A-Z]{2,5}-\d+(?:\.\d+)?$",

@@ -27,6 +27,7 @@ from .swiftrail_subtask import SubtaskKind, SubtaskMeta
 
 if TYPE_CHECKING:  # pragma: no cover - import cycle avoidance only
     from agent.client import SwiftrailAgent
+
     from .algorithms.environment import Environment
 
 
@@ -59,10 +60,10 @@ class SubtaskExecution:
 
 @dataclass
 class SubtaskExecutionAdapter:
-    agent: "SwiftrailAgent"
+    agent: SwiftrailAgent
     session_id: str
     llm: BaseChatModel
-    environment: "Environment | None" = None
+    environment: Environment | None = None
     # Every executed node, in execution order -- consumed by trace_logger
     # and divergence.py.
     history: list[SubtaskExecution] = field(default_factory=list)

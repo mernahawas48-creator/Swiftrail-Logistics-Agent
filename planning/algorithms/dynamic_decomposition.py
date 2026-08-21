@@ -63,8 +63,10 @@ When done is true, use an empty string for next_task."""),
 # fetch_credit_holds -> ... node ordering the up-front plan happened to
 # contain. See divergence.py for where this is made explicit and measured.
 
-from dataclasses import dataclass, field  # noqa: E402  (grouped near use, not at top, to keep the diff to the generic function above minimal)
-from typing import Awaitable, Callable  # noqa: E402
+from collections.abc import Awaitable, Callable
+from dataclasses import (
+    dataclass,
+)
 
 
 class DynamicSwiftrailDecision(BaseModel):
