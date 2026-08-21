@@ -13,6 +13,7 @@ import json
 # Import modules for registration side effects.
 import tools.auth
 import tools.credit_hold
+import tools.delivery_recovery
 import tools.portfolio
 import tools.rate_exception
 import tools.read_tools

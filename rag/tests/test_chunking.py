@@ -10,8 +10,8 @@ def test_chunker_creates_section_aware_chunks():
         overlap=120,
     ).chunk_documents(documents)
 
-    assert len(documents) == 6
-    assert len(chunks) == 22
+    assert len(documents) == 7
+    assert len(chunks) == 27
 
     section_ids = {
         chunk.metadata.section_id
@@ -27,6 +27,7 @@ def test_chunker_creates_section_aware_chunks():
         "IC-3",
         "AC-2",
         "SP-4",
+        "DR-3",
     }.issubset(section_ids)
 
     chunk_ids = [chunk.chunk_id for chunk in chunks]

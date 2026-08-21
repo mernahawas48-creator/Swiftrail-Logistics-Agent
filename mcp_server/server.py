@@ -3,6 +3,7 @@ import sys
 
 import tools.auth
 import tools.credit_hold
+import tools.delivery_recovery
 import tools.portfolio
 import tools.rate_exception
 import tools.read_tools
@@ -17,6 +18,7 @@ runtime_tool_manager, agent_registry = build_runtime_manager(
         tools.read_tools,
         tools.rate_exception,
         tools.credit_hold,
+        tools.delivery_recovery,
         tools.auth,
         tools.portfolio,
         tools.resources_prompts,

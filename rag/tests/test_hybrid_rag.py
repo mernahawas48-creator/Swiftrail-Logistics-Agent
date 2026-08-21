@@ -28,6 +28,20 @@ class StubGenerator:
         return self.answer
 
 
+class SequenceGenerator:
+    model_name = "sequence-stub"
+
+    def __init__(self, answers):
+        self.answers = iter(answers)
+        self.calls = 0
+        self.prompts = []
+
+    def generate(self, prompt):
+        self.calls += 1
+        self.prompts.append(prompt)
+        return next(self.answers)
+
+
 def _result():
     return SimpleNamespace(
         chunk_id="re2",
@@ -103,3 +117,26 @@ def test_hybrid_rag_replaces_unsupported_generation():
     assert response.answer == NO_CONTEXT_ANSWER
     assert response.verification is not None
     assert not response.verification.passed
+
+
+def test_hybrid_rag_corrects_citation_format_once_before_abstaining():
+    generator = SequenceGenerator(
+        [
+            "The policy answer is as follows. A finance manager is required [1].",
+            "A discount above 15 percent requires a finance manager [1].",
+        ]
+    )
+
+    response = HybridRAG(
+        searcher=StubSearch([_result()]),
+        generator=generator,
+    ).answer(
+        "What threshold applies to an above-authority discount?",
+        role="finance_manager",
+    )
+
+    assert generator.calls == 2
+    assert "VERIFIER FEEDBACK" in generator.prompts[1]
+    assert response.answer.endswith("[1].")
+    assert response.verification is not None
+    assert response.verification.passed
