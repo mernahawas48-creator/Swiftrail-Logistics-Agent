@@ -120,7 +120,8 @@ def test_unverified_mcp_evidence_returns_safe_fallback(tmp_path):
     assert result["evidence"] == []
 
 
-def test_operational_route_without_gateway_never_fabricates_data():
+def test_operational_route_without_gateway_never_fabricates_data(monkeypatch):
+    monkeypatch.delenv("SWIFTRAIL_EMPLOYEE_ID", raising=False)
     agent = AgentLoop()
     session_id = agent.start(customer_id="12")
     result = agent.process(

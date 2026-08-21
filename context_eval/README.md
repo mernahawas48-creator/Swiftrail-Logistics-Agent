@@ -35,6 +35,11 @@ context_eval/results/context_comparison.json
 context_eval/results/context_comparison.md
 ```
 
+"Exact fact string retained" is a strict string-retention metric: the planted
+fact must remain verbatim in the messages returned by a strategy. A summarized
+or paraphrased fact does not pass this check, so a `0/10` result must not be
+presented as proof that all semantic meaning was lost.
+
 Input-token figures are a clearly labelled four-characters-per-token prompt
 proxy. Recursive summarization reports Mistral's provider-reported output
 tokens and includes its network/model time in latency. Deterministic strategies

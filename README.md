@@ -371,24 +371,32 @@ Dense and hybrid retrieval were evaluated on 28 fixed retrieval cases.
 
 ### End-to-End Architecture Comparison
 
-The table below is the legacy pre-migration baseline. It must be regenerated on
-the same fixed 10 questions with `mistral-small-latest` before final submission.
+The table below was regenerated on the fixed 10-question suite with
+`mistral-small-latest`. All three architectures ran against the same questions
+and completed without transient API retries.
 
-| Architecture | Correct / Total | Accuracy | Avg. Input Tokens | Avg. Output Tokens | Avg. Total Tokens | Avg. Latency | Avg. Retrieval Attempts |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Naive RAG | 7/10 | 70.0% | 285.8 | 41.0 | 326.8 | 0.610s | 1.00 |
-| Hybrid RAG | 9/10 | 90.0% | 261.3 | 40.0 | 301.3 | 0.501s | 1.00 |
-| Agentic RAG | 9/10 | 90.0% | 640.9 | 41.9 | 682.8 | 0.546s | 1.40 |
+| Architecture | Correct / Total | Accuracy | Avg. Input Tokens | Avg. Output Tokens | Avg. Total Tokens | Avg. Latency | Avg. Retrieval Attempts | API Retries |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Naive RAG | 5/10 | 50.0% | 291.9 | 25.8 | 317.7 | 0.642s | 1.00 | 0 |
+| Hybrid RAG | 6/10 | 60.0% | 272.6 | 29.7 | 302.3 | 0.597s | 1.00 | 0 |
+| Agentic RAG | 7/10 | 70.0% | 647.7 | 28.0 | 675.7 | 0.682s | 1.40 | 0 |
 
 The fixed set covers semantic questions, exact policy identifiers, multi-section questions, an authorization-sensitive case, and an unsupported-information case.
 
 ### Selected Architecture
 
-**Hybrid RAG is the final retrieval architecture used by the live agent.**
+**Hybrid RAG is the default retrieval architecture used by the live agent.**
 
-Hybrid and Agentic RAG both reached **90% accuracy**, but Hybrid used fewer tokens, lower average latency, and one retrieval attempt per query. This matches Swiftrail's common mix of semantic policy questions and exact policy identifiers without paying the extra cost of iterative retrieval on every request.
+Hybrid improves on Naive RAG by 10 percentage points while recording the
+lowest average token use (302.3) and latency (0.597s), with one retrieval
+attempt per query. It is therefore the cost-conscious default for typical
+policy and exact-identifier requests.
 
-Agentic RAG is retained for complex multi-part cases. In the discount-and-severe-hold case, the first retrieval missed `CH-3`; Agentic RAG detected the missing policy facet, rewrote the query, performed a second retrieval, accumulated `RE-2`, `RE-4`, and `CH-3`, and answered successfully. Hybrid RAG did not solve that case.
+Agentic RAG is retained as the escalation path for complex multi-part cases.
+It achieved the highest measured accuracy (70%) and solved both multi-part
+cases, at the cost of about 2.2 times Hybrid's average tokens and additional
+retrieval attempts. The per-case results preserve the remaining failures
+instead of hiding them, so they can guide future prompt and verification work.
 
 Detailed results:
 

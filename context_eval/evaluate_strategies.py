@@ -5,7 +5,7 @@ cites.
 Run with: python -m context_eval.evaluate_strategies
 
 What this measures honestly, and what it does not:
-  - "Detail recalled": whether the planted critical fact is still
+  - "Exact fact string retained": whether the planted critical fact is still
     present, verbatim, somewhere in the message list the strategy
     hands back. This is what actually matters for the failure mode
     (an agent that can't see the fact can't act on it), so it's
@@ -112,7 +112,7 @@ def summarize(results: list[RunResult]) -> list[dict]:
 
 
 def render_markdown_table(rows: list[dict]) -> str:
-    header = "| Strategy | Detail recalled | Avg. input tokens/run | Avg. output tokens/run | Avg. latency |\n"
+    header = "| Strategy | Exact fact string retained | Avg. input tokens/run | Avg. output tokens/run | Avg. latency |\n"
     header += "| --- | --- | --- | --- | --- |\n"
     lines = [header]
     for row in rows:

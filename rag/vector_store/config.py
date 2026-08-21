@@ -3,27 +3,39 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(PROJECT_ROOT / ".env")
 
 
 @dataclass(frozen=True, slots=True)
 class VectorStoreSettings:
     """Connection and collection settings for Qdrant."""
 
-    url: str = os.getenv(
-        "QDRANT_URL",
-        "http://127.0.0.1:6333",
+    url: str = field(
+        default_factory=lambda: os.getenv(
+            "QDRANT_URL",
+            "http://127.0.0.1:6333",
+        )
     )
-    api_key: str | None = os.getenv("QDRANT_API_KEY") or None
-    collection_name: str = os.getenv(
-        "QDRANT_COLLECTION",
-        "swiftrail_knowledge",
+    api_key: str | None = field(
+        default_factory=lambda: os.getenv("QDRANT_API_KEY") or None
     )
-    vector_size: int = int(
-        os.getenv("QDRANT_VECTOR_SIZE", "384")
+    collection_name: str = field(
+        default_factory=lambda: os.getenv(
+            "QDRANT_COLLECTION",
+            "swiftrail_knowledge",
+        )
     )
-    default_top_k: int = int(
-        os.getenv("QDRANT_TOP_K", "5")
+    vector_size: int = field(
+        default_factory=lambda: int(os.getenv("QDRANT_VECTOR_SIZE", "384"))
+    )
+    default_top_k: int = field(
+        default_factory=lambda: int(os.getenv("QDRANT_TOP_K", "5"))
     )
 
     def validate(self) -> None:
