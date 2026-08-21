@@ -4,45 +4,35 @@ cites.
 
 Run with: python -m context_eval.evaluate_strategies
 
-What this measures honestly, and what it doesn't:
+What this measures honestly, and what it does not:
   - "Detail recalled": whether the planted critical fact is still
     present, verbatim, somewhere in the message list the strategy
     hands back. This is what actually matters for the failure mode
     (an agent that can't see the fact can't act on it), so it's
     checked at the string level rather than via an LLM judge -- an
-    LLM judge would need a live model call per run, which is exactly
-    the output-token cost the lab notes tells us to avoid.
+    LLM judge would add a second, unrelated model cost to every run.
   - "Tokens": approximated via a 4-chars-per-token heuristic over the
     serialized message list. No model call is made, so this is a
     proxy for prompt size, not billed API tokens. Swap in a real
-    tokenizer (tiktoken / the Mistral tokenizer) if exact billed
+    tokenizer for the selected model if exact prompt-token estimates
     numbers are needed.
-  - "Latency": wall-clock time of strategy.apply() itself. Since none
-    of the four strategies as implemented call an LLM (see the
-    recursive-summarization caveat below), this measures pruning
-    overhead, not generation latency.
-
-Known limitation worth flagging in the README, not hiding: the current
-RecursiveSummarization strategy (context_eval/strategies/recursive_summarization.py)
-builds its "summary" by string-joining the old messages rather than
-calling a model to compress them. That means it never actually drops
-information (so it will score artificially well on recall) and never
-spends real output tokens (so it will score artificially well on
-output-token cost too). The numbers below are reported as-is for the
-implementation that exists; the fix is to route old_messages through
-rag/naive_rag/generator.py's Mistral call and summarize for real.
+  - "Output tokens": provider-reported Mistral output tokens for recursive
+    summarization. Deterministic strategies make no model call and report 0.
+  - "Latency": wall-clock time of strategy.apply(). Recursive summarization
+    therefore includes the live Mistral request; the other strategies measure
+    local pruning overhead only.
 """
 
 from __future__ import annotations
 
 import json
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from context_eval.strategies.recursive_summarization import RecursiveSummarization
 from context_eval.strategies.sliding_window import SlidingWindow
 from context_eval.strategies.tool_output_masking import ToolOutputMasking
-from context_eval.strategies.recursive_summarization import RecursiveSummarization
 from context_eval.strategies.zone_based_pruning import ZoneBasedPruning
 from context_eval.test_transcripts import build_test_suite
 
@@ -74,6 +64,11 @@ class RunResult:
 
 
 def run_one(strategy_name: str, strategy, transcript) -> RunResult:
+    generator = getattr(strategy, "generator", None)
+    reset_usage = getattr(generator, "reset_usage", None)
+    if callable(reset_usage):
+        reset_usage()
+
     start = time.perf_counter()
     pruned = strategy.apply(transcript.messages)
     elapsed = time.perf_counter() - start
@@ -87,7 +82,6 @@ def run_one(strategy_name: str, strategy, transcript) -> RunResult:
     # genuinely spend 0 output tokens -- that's the honest tradeoff
     # the comparison table is supposed to show.
     output_tokens = 0
-    generator = getattr(strategy, "generator", None)
     if generator is not None and hasattr(generator, "last_usage"):
         output_tokens = generator.last_usage.output_tokens
 

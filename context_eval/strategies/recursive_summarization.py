@@ -1,7 +1,8 @@
 from typing import Any
 
-from .base import ContextStrategy
 from rag.naive_rag.generator import MistralTextGenerator, TextGenerator
+
+from .base import ContextStrategy
 
 
 class RecursiveSummarization(ContextStrategy):
@@ -15,11 +16,13 @@ class RecursiveSummarization(ContextStrategy):
     honestly.
     """
 
-    def init(
+    def __init__(
         self,
         keep_last_messages: int = 5,
         generator: TextGenerator | None = None,
     ):
+        if keep_last_messages < 1:
+            raise ValueError("keep_last_messages must be at least 1.")
         self.keep_last_messages = keep_last_messages
         self.generator = generator or MistralTextGenerator()
 

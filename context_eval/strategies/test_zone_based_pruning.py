@@ -1,24 +1,22 @@
-from strategies.zone_based_pruning import ZoneBasedPruning
+import pytest
+
+from context_eval.strategies.zone_based_pruning import ZoneBasedPruning
 
 
-messages = [
-    {"role": "system", "content": "You are a helpful agent."},
-    {"role": "user", "content": "Old question 1"},
-    {"role": "assistant", "content": "Old answer 1"},
-    {"role": "tool", "content": "Old tool result"},
-    {"role": "user", "content": "Recent question"},
-    {"role": "assistant", "content": "Recent answer"},
-]
+def test_zone_pruning_keeps_system_zone_and_recent_messages():
+    system = {"role": "system", "content": "ground all answers"}
+    messages = [
+        system,
+        {"role": "employee", "content": "old"},
+        {"role": "agent", "content": "middle"},
+        {"role": "employee", "content": "recent"},
+    ]
 
-strategy = ZoneBasedPruning(keep_recent_messages=2)
+    result = ZoneBasedPruning(keep_recent_messages=2).apply(messages)
 
-result = strategy.apply(messages)
+    assert result == [system, *messages[-2:]]
 
-print("Original messages:")
-print(messages)
 
-print("\nAfter zone-based pruning:")
-print(result)
-
-print("\nNumber of messages before:", len(messages))
-print("Number of messages after:", len(result))
+def test_zone_pruning_rejects_invalid_size():
+    with pytest.raises(ValueError, match="at least 1"):
+        ZoneBasedPruning(keep_recent_messages=0)

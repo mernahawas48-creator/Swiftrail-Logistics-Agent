@@ -22,7 +22,6 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-
 TOOL_EVENTS = [
     ("get_shipment_status", '{{"shipment_id": {sid}, "status": "in_transit", "eta": "2026-08-{day:02d}"}}'),
     ("list_customer_invoices", '{{"customer_id": {cid}, "invoice_count": {n}, "total_due": "{amt}.00"}}'),
@@ -50,7 +49,7 @@ FINAL_QUESTIONS = [
 
 
 @dataclass
-class TestTranscript:
+class EvaluationTranscript:
     name: str
     messages: list[dict]
     critical_fact: str
@@ -67,7 +66,7 @@ def _tool_noise_turn(rng: random.Random, cid: int, sid: int) -> dict:
     return {"role": "tool", "name": name, "content": content}
 
 
-def make_transcript(index: int, noise_turns: int, seed: int) -> TestTranscript:
+def make_transcript(index: int, noise_turns: int, seed: int) -> EvaluationTranscript:
     """Build one long transcript with a critical fact buried under noise."""
     rng = random.Random(seed)
     cid = 100 + index
@@ -94,7 +93,7 @@ def make_transcript(index: int, noise_turns: int, seed: int) -> TestTranscript:
 
     messages.append({"role": "employee", "content": question})
 
-    return TestTranscript(
+    return EvaluationTranscript(
         name=f"transcript_{index:02d}_noise{noise_turns}",
         messages=messages,
         critical_fact=fact,
@@ -102,7 +101,7 @@ def make_transcript(index: int, noise_turns: int, seed: int) -> TestTranscript:
     )
 
 
-def build_test_suite() -> list[TestTranscript]:
+def build_test_suite() -> list[EvaluationTranscript]:
     """10 fixed transcript variations. Do not change once evaluation starts."""
     noise_levels = [30, 35, 32, 40, 28, 36, 33, 45, 30, 38]
     return [

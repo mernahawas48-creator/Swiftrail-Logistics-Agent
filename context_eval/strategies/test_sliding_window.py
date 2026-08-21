@@ -1,20 +1,18 @@
-from strategies.sliding_window import SlidingWindow
+import pytest
+
+from context_eval.strategies.sliding_window import SlidingWindow
 
 
-messages = [
-    {"role": "user", "content": "Message 1"},
-    {"role": "assistant", "content": "Message 2"},
-    {"role": "user", "content": "Message 3"},
-    {"role": "assistant", "content": "Message 4"},
-    {"role": "user", "content": "Message 5"},
-]
+def test_sliding_window_keeps_only_most_recent_messages():
+    messages = [
+        {"role": "employee", "content": "one"},
+        {"role": "agent", "content": "two"},
+        {"role": "employee", "content": "three"},
+    ]
 
-strategy = SlidingWindow(max_messages=3)
+    assert SlidingWindow(max_messages=2).apply(messages) == messages[-2:]
 
-result = strategy.apply(messages)
 
-print("Original messages:")
-print(messages)
-
-print("\nAfter sliding window:")
-print(result)
+def test_sliding_window_rejects_invalid_size():
+    with pytest.raises(ValueError, match="at least 1"):
+        SlidingWindow(max_messages=0)
