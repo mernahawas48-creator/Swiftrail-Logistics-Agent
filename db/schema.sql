@@ -67,3 +67,67 @@ CREATE TABLE rate_exceptions (
     FOREIGN KEY (requested_by) REFERENCES employees(id),
     FOREIGN KEY (approved_by) REFERENCES employees(id)
 );
+
+-- Shared durable state-graph runtime. HITL tasks and failure tickets are
+-- intentionally separate so an expected human decision can never be confused
+-- with an unplanned execution failure.
+CREATE TABLE graph_runs (
+    run_id        VARCHAR(64) PRIMARY KEY,
+    graph_name    VARCHAR(100) NOT NULL,
+    status        VARCHAR(32) NOT NULL,
+    current_node  VARCHAR(100) NOT NULL,
+    revision      INT NOT NULL DEFAULT 0,
+    state_json    JSON NOT NULL,
+    created_at    VARCHAR(40) NOT NULL,
+    updated_at    VARCHAR(40) NOT NULL
+);
+
+CREATE TABLE graph_checkpoints (
+    checkpoint_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    run_id         VARCHAR(64) NOT NULL,
+    revision       INT NOT NULL,
+    node           VARCHAR(100) NOT NULL,
+    event          VARCHAR(100) NOT NULL,
+    state_json     JSON NOT NULL,
+    created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_graph_checkpoint_revision (run_id, revision),
+    FOREIGN KEY (run_id) REFERENCES graph_runs(run_id)
+);
+
+CREATE TABLE graph_node_executions (
+    execution_key VARCHAR(180) PRIMARY KEY,
+    run_id        VARCHAR(64) NOT NULL,
+    node          VARCHAR(100) NOT NULL,
+    result_json   JSON NOT NULL,
+    completed_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (run_id) REFERENCES graph_runs(run_id)
+);
+
+CREATE TABLE graph_hitl_tasks (
+    task_id       VARCHAR(64) PRIMARY KEY,
+    run_id        VARCHAR(64) NOT NULL,
+    node          VARCHAR(100) NOT NULL,
+    status        ENUM('pending','approved','rejected') NOT NULL,
+    reason        VARCHAR(500) NOT NULL,
+    request_json  JSON NOT NULL,
+    state_json    JSON NOT NULL,
+    decision_json JSON,
+    created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    resolved_at   TIMESTAMP NULL,
+    FOREIGN KEY (run_id) REFERENCES graph_runs(run_id)
+);
+
+CREATE TABLE graph_failure_tickets (
+    ticket_id        VARCHAR(64) PRIMARY KEY,
+    run_id           VARCHAR(64) NOT NULL,
+    failed_node      VARCHAR(100) NOT NULL,
+    status           ENUM('open','investigating','resolved') NOT NULL,
+    error_type       VARCHAR(150) NOT NULL,
+    error_message    VARCHAR(1000) NOT NULL,
+    state_json       JSON NOT NULL,
+    resolution_note  VARCHAR(1000),
+    created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    investigating_at TIMESTAMP NULL,
+    resolved_at      TIMESTAMP NULL,
+    FOREIGN KEY (run_id) REFERENCES graph_runs(run_id)
+);
