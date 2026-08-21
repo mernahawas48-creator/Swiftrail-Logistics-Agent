@@ -135,6 +135,17 @@ class HybridRAG:
             answer,
             results,
         )
+        if not support.passed:
+            correction_prompt = self._build_correction_prompt(
+                original_prompt=prompt,
+                rejected_answer=answer,
+                failure_reason=support.reason,
+            )
+            answer = self.generator.generate(correction_prompt).strip()
+            support = self.verifier.check_support(
+                answer,
+                results,
+            )
         verification = self.verifier.summarize(
             relevance,
             support,
@@ -244,4 +255,30 @@ USER QUESTION
 
 ANSWER
 ------
+""".strip()
+
+    @staticmethod
+    def _build_correction_prompt(
+        *,
+        original_prompt: str,
+        rejected_answer: str,
+        failure_reason: str,
+    ) -> str:
+        return f"""
+{original_prompt}
+
+The previous answer was rejected by the deterministic verifier.
+
+REJECTED ANSWER
+---------------
+{rejected_answer}
+
+VERIFIER FEEDBACK
+-----------------
+{failure_reason}
+
+Rewrite the answer once using only the same authorized evidence.
+Start directly with the answer; do not add an introduction or an uncited
+heading. Every factual sentence or bullet must end with at least one valid
+numbered citation such as [1]. Return only the corrected answer.
 """.strip()
