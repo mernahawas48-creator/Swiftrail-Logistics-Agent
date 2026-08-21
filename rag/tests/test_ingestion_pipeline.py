@@ -92,11 +92,11 @@ def test_pipeline_ingests_the_complete_corpus():
         recreate_collection=True
     )
 
-    assert report.documents_loaded == 6
-    assert report.chunks_created == 22
-    assert report.chunks_embedded == 22
-    assert report.points_uploaded == 22
-    assert report.points_stored == 22
+    assert report.documents_loaded == 7
+    assert report.chunks_created == 27
+    assert report.chunks_embedded == 27
+    assert report.points_uploaded == 27
+    assert report.points_stored == 27
     assert report.vector_size == 384
     assert report.recreated_collection is True
 
@@ -124,9 +124,9 @@ def test_pipeline_is_idempotent_with_stable_chunk_ids():
         recreate_collection=False
     )
 
-    assert first.points_stored == 22
-    assert second.points_uploaded == 22
-    assert second.points_stored == 22
+    assert first.points_stored == 27
+    assert second.points_uploaded == 27
+    assert second.points_stored == 27
 
 
 def test_pipeline_rejects_vector_size_mismatch():

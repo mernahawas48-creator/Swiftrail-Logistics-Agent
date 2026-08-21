@@ -1,10 +1,10 @@
 from rag.loading.loader import CorpusLoader
 
 
-def test_loader_reads_all_six_corpus_documents():
+def test_loader_reads_all_seven_corpus_documents():
     documents = CorpusLoader().load()
 
-    assert len(documents) == 6
+    assert len(documents) == 7
 
     document_ids = {
         document.metadata["doc_id"]
@@ -18,6 +18,7 @@ def test_loader_reads_all_six_corpus_documents():
         "invoice_collection_sop",
         "employee_access_policy",
         "shipment_pricing_reference",
+        "delivery_exception_policy",
     }
 
     for document in documents:

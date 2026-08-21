@@ -28,8 +28,8 @@ def test_manifest_entries_match_document_metadata_schema():
         list[DocumentMetadataSchema]
     ).validate_python(manifest)
 
-    assert len(documents) == 6
-    assert len({document.doc_id for document in documents}) == 6
+    assert len(documents) == 7
+    assert len({document.doc_id for document in documents}) == 7
 
     for document in documents:
         assert document.status == "active"
@@ -48,7 +48,7 @@ def test_generated_chunks_match_chunk_metadata_schema():
         for chunk in chunks
     ]
 
-    assert len(validated) == 22
+    assert len(validated) == 27
     assert all(
         len(metadata.source_checksum) == 64
         for metadata in validated

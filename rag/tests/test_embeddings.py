@@ -42,8 +42,8 @@ def test_embedder_preserves_all_chunks_and_metadata():
     )
     embedded = embedder.embed_chunks(chunks)
 
-    assert len(chunks) == 22
-    assert len(embedded) == 22
+    assert len(chunks) == 27
+    assert len(embedded) == 27
     assert embedder.dimension == 4
 
     for original, result in zip(
