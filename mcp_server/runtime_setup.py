@@ -14,7 +14,9 @@ def build_runtime_manager(app, modules):
 
     manager = RuntimeToolManager(app, functions)
     agents = AgentRegistry()
-    agents.register("state_graph_1", "State Graph 1", "state_graph")
+    agents.register(
+        "state_graph_1", "Delivery Exception Recovery", "state_graph"
+    )
     agents.register("state_graph_2", "Rate Exception Resolution", "state_graph")
     agents.register("memory_rag", "Memory / RAG Agent", "rag")
     agents.register("planning", "Decomposition / Planning Agent", "planning")
@@ -24,5 +26,13 @@ def build_runtime_manager(app, modules):
     manager.registry.register_agent("state_graph_2", {"authenticate", "get_shipment_status", "get_shipment_rate_exception", "approve_rate_exception"})
     manager.registry.register_agent("memory_rag", {"authenticate"})
     manager.registry.register_agent("planning", {"authenticate", "get_shipment_status", "list_customer_credit_holds"})
-    manager.registry.register_agent("state_graph_1", {"authenticate"})
+    manager.registry.register_agent(
+        "state_graph_1",
+        {
+            "authenticate",
+            "get_shipment_status",
+            "create_delivery_recovery_case",
+            "apply_shipment_reroute",
+        },
+    )
     return manager, agents

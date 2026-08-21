@@ -135,6 +135,32 @@ class ReleaseCreditHoldInput(SessionScopedInput):
     )
 
 
+class CreateDeliveryRecoveryCaseInput(SessionScopedInput):
+    shipment_id: int = Field(..., gt=0)
+    failure_reason: str = Field(..., min_length=10, max_length=500)
+
+
+class RerouteAuthorization(StrictInputModel):
+    admin_employee_id: int = Field(..., gt=0)
+    authorization_note: str = Field(..., min_length=10, max_length=500)
+
+
+class ApplyShipmentRerouteInput(SessionScopedInput):
+    case_id: int = Field(..., gt=0)
+    new_destination: str = Field(..., min_length=3, max_length=100)
+    estimated_cost: float = Field(..., ge=0, le=100000)
+    destination_verified: bool
+    customs_change: bool
+    high_value: bool
+    idempotency_key: str = Field(
+        ...,
+        min_length=12,
+        max_length=180,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]+$",
+    )
+    authorization: RerouteAuthorization | None = None
+
+
 class PortfolioExposureInput(SessionScopedInput):
     """Input for the finance-manager-only portfolio exposure tool."""
 

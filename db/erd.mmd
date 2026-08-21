@@ -3,13 +3,21 @@ erDiagram
     EMPLOYEES ||--o{ CREDIT_HOLDS : "releases"
     EMPLOYEES ||--o{ RATE_EXCEPTIONS : "requests"
     EMPLOYEES ||--o{ RATE_EXCEPTIONS : "approves"
+    EMPLOYEES ||--o{ DELIVERY_RECOVERY_CASES : "creates/applies"
 
     CUSTOMERS ||--o{ SHIPMENTS : "places"
     CUSTOMERS ||--o{ INVOICES : "billed"
     CUSTOMERS ||--o{ CREDIT_HOLDS : "held"
+    CUSTOMERS ||--o{ DELIVERY_RECOVERY_CASES : "owns"
 
     SHIPMENTS o|--o| INVOICES : "optionally billed via"
     SHIPMENTS ||--o{ RATE_EXCEPTIONS : "discounted via"
+    SHIPMENTS ||--o{ DELIVERY_RECOVERY_CASES : "recovered via"
+
+    GRAPH_RUNS ||--o{ GRAPH_CHECKPOINTS : "persists"
+    GRAPH_RUNS ||--o{ GRAPH_NODE_EXECUTIONS : "receipts"
+    GRAPH_RUNS ||--o{ GRAPH_HITL_TASKS : "pauses for"
+    GRAPH_RUNS ||--o{ GRAPH_FAILURE_TICKETS : "fails into"
 
     EMPLOYEES {
         int id PK
@@ -70,4 +78,58 @@ erDiagram
         int approved_by FK
         timestamp created_at
         timestamp resolved_at
+    }
+
+    DELIVERY_RECOVERY_CASES {
+        int id PK
+        int shipment_id FK
+        int customer_id FK
+        string failure_reason
+        string case_status
+        string requested_destination
+        decimal estimated_cost
+        boolean requires_admin
+        string idempotency_key
+    }
+
+    GRAPH_RUNS {
+        string run_id PK
+        string graph_name
+        string status
+        string current_node
+        int revision
+        json state_json
+    }
+
+    GRAPH_CHECKPOINTS {
+        int checkpoint_id PK
+        string run_id FK
+        int revision
+        string node
+        string event
+        json state_json
+    }
+
+    GRAPH_NODE_EXECUTIONS {
+        string execution_key PK
+        string run_id FK
+        string node
+        json result_json
+    }
+
+    GRAPH_HITL_TASKS {
+        string task_id PK
+        string run_id FK
+        string node
+        string status
+        json decision_json
+    }
+
+    GRAPH_FAILURE_TICKETS {
+        string ticket_id PK
+        string run_id FK
+        string failed_node
+        string status
+        string error_type
+        string error_message
     }

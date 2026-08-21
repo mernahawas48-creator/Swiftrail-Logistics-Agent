@@ -21,7 +21,7 @@ CREATE TABLE shipments (
     railcar_id    VARCHAR(50),
     base_rate     DECIMAL(12,2) NOT NULL CHECK (base_rate > 0),
     final_rate    DECIMAL(12,2),
-    status        ENUM('pending','blocked','released','in_transit','delivered') NOT NULL DEFAULT 'pending',
+    status        ENUM('pending','blocked','released','in_transit','delivered','delivery_exception') NOT NULL DEFAULT 'pending',
     requested_by  INT NOT NULL,
     created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
@@ -66,6 +66,27 @@ CREATE TABLE rate_exceptions (
     FOREIGN KEY (shipment_id) REFERENCES shipments(id),
     FOREIGN KEY (requested_by) REFERENCES employees(id),
     FOREIGN KEY (approved_by) REFERENCES employees(id)
+);
+
+CREATE TABLE delivery_recovery_cases (
+    id                    INT PRIMARY KEY AUTO_INCREMENT,
+    shipment_id           INT NOT NULL,
+    customer_id           INT NOT NULL,
+    failure_reason        VARCHAR(500) NOT NULL,
+    case_status           ENUM('open','waiting_customer','waiting_admin','resolved') NOT NULL DEFAULT 'open',
+    selected_option       VARCHAR(50),
+    requested_destination VARCHAR(100),
+    estimated_cost        DECIMAL(12,2),
+    requires_admin        BOOLEAN NOT NULL DEFAULT FALSE,
+    idempotency_key       VARCHAR(180) UNIQUE,
+    created_by            INT NOT NULL,
+    applied_by            INT,
+    created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    resolved_at           TIMESTAMP NULL,
+    FOREIGN KEY (shipment_id) REFERENCES shipments(id),
+    FOREIGN KEY (customer_id) REFERENCES customers(id),
+    FOREIGN KEY (created_by) REFERENCES employees(id),
+    FOREIGN KEY (applied_by) REFERENCES employees(id)
 );
 
 -- Shared durable state-graph runtime. HITL tasks and failure tickets are

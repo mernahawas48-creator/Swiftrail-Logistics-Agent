@@ -18,6 +18,11 @@ INSERT INTO shipments (customer_id, origin, destination, railcar_id, base_rate, 
  (3, 'Ain Sokhna Port', 'Aswan Yard', 'RC-3387', 140000, NULL, 'blocked', 1),
  (4, 'Cairo Yard', 'Alexandria Port', 'RC-1188', 40000, 36000, 'released', 2),
  (1, 'Cairo Yard', 'Luxor Yard', 'RC-1509', 95000, NULL, 'pending', 1);
+INSERT INTO shipments (
+ customer_id, origin, destination, railcar_id, base_rate,
+ final_rate, status, requested_by
+) VALUES
+ (1, 'Alexandria Port', 'Cairo Yard', 'RC-1660', 105000, 105000, 'delivery_exception', 1);
 
 -- invoices
 INSERT INTO invoices (customer_id, shipment_id, amount, due_date, paid_status, days_overdue) VALUES
