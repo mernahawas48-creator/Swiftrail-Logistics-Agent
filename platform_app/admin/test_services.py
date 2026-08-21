@@ -1,8 +1,8 @@
 import asyncio
 
+from platform_app.admin.services import AdminService
 from mcp_server.agent_registry import AgentRegistry
 from mcp_server.runtime_tool_manager import RuntimeToolManager
-from platform_app.admin.services import AdminService
 
 
 class FakeTool:
@@ -48,3 +48,25 @@ def test_admin_tool_changes_reach_live_server():
     assert "tool_a" not in removed["tools"]
     assert "tool_a" not in removed["server_tools"]
     assert server.notifications == 2
+
+
+def test_agent_registration_and_permission_enforcement():
+    server = FakeServer()
+    manager = RuntimeToolManager(server, {"tool_a": lambda: None, "tool_b": lambda: None})
+    agents = AgentRegistry()
+    service = AdminService(manager, agents)
+
+    snapshot = service.register_agent("agent-1", "Agent 1", "state_graph", {"tool_a"})
+    assert snapshot["tools"] == ["tool_a"]
+    assert manager.registry.can_call("agent-1", "tool_a")
+    assert not manager.registry.can_call("agent-1", "tool_b")
+
+    import pytest
+    with pytest.raises(PermissionError):
+        manager.registry.require_permission("agent-1", "tool_b")
+
+    service.unregister_agent("agent-1")
+    assert agents.get("agent-1") is None
+    assert not manager.registry.can_call("agent-1", "tool_a")
+
+
