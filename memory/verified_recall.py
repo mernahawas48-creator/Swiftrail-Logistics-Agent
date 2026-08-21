@@ -6,14 +6,15 @@ checked against the cited memory evidence before it is returned.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import re
-from typing import Any, Sequence
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any
 
 from memory.episodic_store import EpisodicMemory
 from memory.semantic_store import SemanticMemory
-from rag.naive_rag.generator import GeminiTextGenerator, TextGenerator
+from rag.naive_rag.generator import MistralTextGenerator, TextGenerator
 from rag.verification.verifier import SelfRAGVerifier, VerificationSummary
 
 SAFE_MEMORY_ANSWER = (
@@ -63,7 +64,7 @@ class VerifiedMemoryRecall:
     ):
         self.episodic_memory = episodic_memory
         self.semantic_memory = semantic_memory
-        self.generator = generator or GeminiTextGenerator()
+        self.generator = generator or MistralTextGenerator()
         self.verifier = verifier or SelfRAGVerifier()
         self.max_episodes = max_episodes
 

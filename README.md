@@ -371,7 +371,8 @@ Dense and hybrid retrieval were evaluated on 28 fixed retrieval cases.
 
 ### End-to-End Architecture Comparison
 
-Naive, Hybrid, and Agentic RAG were evaluated on the same fixed 10 Swiftrail questions using `gemini-3.5-flash-lite`.
+The table below is the legacy pre-migration baseline. It must be regenerated on
+the same fixed 10 questions with `mistral-small-latest` before final submission.
 
 | Architecture | Correct / Total | Accuracy | Avg. Input Tokens | Avg. Output Tokens | Avg. Total Tokens | Avg. Latency | Avg. Retrieval Attempts |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -418,12 +419,10 @@ retrieval_eval/     Fixed end-to-end architecture evaluation
 ### Install dependencies
 
 ```powershell
-pip install -r mcp_server\requirements.txt
-pip install -r agent\requirements.txt
-pip install -r rag\embeddings\requirements.txt
-pip install -r rag\vector_store\requirements.txt
-pip install -U langchain-mistralai
-pip install pytest
+python -m pip install -r requirements.txt
+
+# For tests and linting
+python -m pip install -r requirements-dev.txt
 ```
 
 ### Configure MySQL
@@ -437,25 +436,17 @@ db/seed.sql
 
 Copy `mcp_server/.env.example` to `mcp_server/.env` and set the local database credentials.
 
-### Configure Gemini
+### Configure Mistral
 
-The live Memory/RAG agent and `planning.run_swiftrail` use Gemini. Create a root `.env` file:
-
-```env
-GEMINI_API_KEY=your_key
-GEMINI_MODEL=gemini-3.6-flash
-```
-
-### Configure Mistral for the live planning benchmark
-
-The final provider-based planning benchmark uses the same provider as the reference planning toolkit:
+All live text-generation paths use Mistral. Copy `.env.example` to `.env` and
+set your local key:
 
 ```env
 MISTRAL_API_KEY=your_key
 MISTRAL_MODEL=mistral-small-latest
 ```
 
-Gemini and Mistral variables can coexist in the same root `.env`. Do not commit real credentials.
+Do not commit real credentials.
 
 ### Start Qdrant and ingest the corpus
 
@@ -596,4 +587,3 @@ artifacts/above_authority_rate_reflexion.json
 `demo/planning_demo_transcript.md` captures the required planning evidence from the deterministic fixed suite: the same request decomposed both ways with the divergence point visible, routed Plan-and-Solve / Tree of Thoughts / LATS subtasks, a Self-Refine revision, Reflexion carrying a reflection into the next trial, and a grounded failure that the ungrounded evaluator misses.
 
 The separate live provider cost/quality evidence is stored in `artifacts/live_planning_benchmark.json` and `artifacts/live_planning_benchmark.md`.
-

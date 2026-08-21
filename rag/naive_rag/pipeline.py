@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
 from rag.embeddings.embedder import ChunkEmbedder
 from rag.metadata.schema import SearchFilters
 from rag.naive_rag.generator import (
-    GeminiTextGenerator,
+    MistralTextGenerator,
     TextGenerator,
 )
 from rag.verification.verifier import (
     SelfRAGVerifier,
     VerificationSummary,
 )
-
 
 NO_CONTEXT_ANSWER = (
     "I could not find enough authorized information in the "
@@ -69,7 +69,7 @@ class NaiveRAG:
 
         self.vector_store = vector_store
         self.generator = (
-            generator or GeminiTextGenerator()
+            generator or MistralTextGenerator()
         )
         self.verifier = (
             verifier or SelfRAGVerifier()

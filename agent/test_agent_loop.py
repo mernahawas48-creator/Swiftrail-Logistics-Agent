@@ -1,7 +1,7 @@
 """Real pytest coverage for AgentLoop.
 
 The RAG pipeline (HybridRAG) is mocked here since it needs a live
-Qdrant instance + GEMINI_API_KEY -- that's covered separately by
+Qdrant instance + MISTRAL_API_KEY -- that's covered separately by
 rag/tests/test_hybrid_rag_integration.py, not duplicated here. This
 file is about the agent loop's own wiring: routing, memory overflow,
 verification fallback, and scratchpad state.

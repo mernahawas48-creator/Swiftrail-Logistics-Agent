@@ -15,7 +15,7 @@ What this measures honestly, and what it doesn't:
   - "Tokens": approximated via a 4-chars-per-token heuristic over the
     serialized message list. No model call is made, so this is a
     proxy for prompt size, not billed API tokens. Swap in a real
-    tokenizer (tiktoken / the Gemini tokenizer) if exact billed
+    tokenizer (tiktoken / the Mistral tokenizer) if exact billed
     numbers are needed.
   - "Latency": wall-clock time of strategy.apply() itself. Since none
     of the four strategies as implemented call an LLM (see the
@@ -30,7 +30,7 @@ information (so it will score artificially well on recall) and never
 spends real output tokens (so it will score artificially well on
 output-token cost too). The numbers below are reported as-is for the
 implementation that exists; the fix is to route old_messages through
-rag/naive_rag/generator.py's Gemini call and summarize for real.
+rag/naive_rag/generator.py's Mistral call and summarize for real.
 """
 
 from __future__ import annotations

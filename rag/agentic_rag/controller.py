@@ -3,24 +3,24 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import asdict
-from typing import Any, Protocol, Sequence
+from typing import Any, ClassVar, Protocol
 
 from rag.agentic_rag.models import (
-    AgentTraceStep,
     AgenticRAGAnswer,
     AgenticRAGSource,
+    AgentTraceStep,
     EvidenceAssessment,
     RetrievalPlan,
 )
 from rag.naive_rag.generator import (
-    GeminiTextGenerator,
+    MistralTextGenerator,
     TextGenerator,
 )
 from rag.verification.verifier import (
     SelfRAGVerifier,
 )
-
 
 SECTION_ID_PATTERN = re.compile(
     r"^[A-Z]{2,5}-\d+(?:\.\d+)?$",
@@ -385,7 +385,7 @@ class KeywordEvidenceGrader:
 class CorpusQueryRewriter:
     """Expand weak queries using corpus-specific operational terms."""
 
-    EXPANSIONS = {
+    EXPANSIONS: ClassVar[dict[str, str]] = {
         "access": (
             "employee access role permission authentication"
         ),
@@ -537,7 +537,7 @@ class AgenticRAG:
 
         self.retriever = retriever
         self.generator = (
-            generator or GeminiTextGenerator()
+            generator or MistralTextGenerator()
         )
         self.planner = (
             planner or HeuristicPlanner()
