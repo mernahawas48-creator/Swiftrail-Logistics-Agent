@@ -1,0 +1,11 @@
+# Shared Swiftrail runtime dependencies
+mcp>=1.20,<2.0
+pydantic>=2.7,<3.0
+pymysql>=1.1,<2.0
+python-dotenv>=1.0,<2.0
+networkx>=3.4,<4.0
+langchain-core>=1.0,<2.0
+langchain-mistralai>=1.0,<2.0
+fastembed>=0.7,<1.0
+qdrant-client>=1.15,<2.0
+rank-bm25>=0.2,<1.0
