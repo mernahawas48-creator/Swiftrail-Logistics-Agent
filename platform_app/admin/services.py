@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
+from pathlib import Path
+from typing import Any, Callable
 
-from mcp_server.agent_registry import AgentRegistry
 from mcp_server.runtime_tool_manager import RuntimeToolManager
+from mcp_server.agent_registry import AgentRegistry
 from state_graph.graph_2.graph import RateExceptionGraph
 
 
@@ -38,6 +38,26 @@ class AdminService:
             }
             for record in self.agents.as_dicts()
         ]
+
+    def register_agent(
+        self,
+        agent_id: str,
+        name: str,
+        kind: str,
+        tools: set[str] | None = None,
+        **metadata: Any,
+    ) -> dict[str, Any]:
+        """Register an agent and its initial runtime MCP permissions."""
+        if self.agents.get(agent_id) is not None:
+            raise ValueError(f"Agent already exists: {agent_id}")
+        self.agents.register(agent_id, name, kind, **metadata)
+        return self.tool_manager.register_agent(agent_id, tools)
+
+    def unregister_agent(self, agent_id: str) -> None:
+        """Remove an agent and revoke its runtime tool permissions."""
+        self._require_agent(agent_id)
+        self.tool_manager.unregister_agent(agent_id)
+        self.agents._agents.pop(agent_id, None)
 
     async def add_tool(self, agent_id: str, tool_name: str) -> dict[str, Any]:
         self._require_agent(agent_id)
