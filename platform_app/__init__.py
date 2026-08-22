@@ -1,1 +1,0 @@
-"""SwiftRail platform integration package."""
