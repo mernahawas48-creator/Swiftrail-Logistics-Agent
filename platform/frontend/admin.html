@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Swiftrail — Admin Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="traffic"><span></span><span></span><span></span></div>
+    <span class="mark"><span class="seal-dot"></span>SWIFTRAIL</span>
+    <span class="sub">ADMIN DASHBOARD</span>
+    <nav>
+      <a href="index.html">Chat</a>
+      <a href="admin.html" class="active">Admin Dashboard</a>
+    </nav>
+  </div>
+
+  <div class="shell">
+    <div class="sidebar col" style="width:190px;">
+      <div class="heading">Sections</div>
+      <div class="agent-item active" data-section="agents"><div class="name">Agents &amp; Tools</div></div>
+      <div class="agent-item" data-section="rag"><div class="name">RAG Documents</div></div>
+      <div class="agent-item" data-section="hitl"><div class="name">HITL Queue</div></div>
+      <div class="agent-item" data-section="tickets"><div class="name">Tickets</div></div>
+    </div>
+
+    <div class="admin-shell col" style="flex:1;">
+      <div id="section-agents"></div>
+      <div id="section-rag" style="display:none;"></div>
+      <div id="section-hitl" style="display:none;"></div>
+      <div id="section-tickets" style="display:none;"></div>
+    </div>
+  </div>
+
+<script>
+const API = "http://localhost:8000/api";
+
+document.querySelectorAll("[data-section]").forEach(el => {
+  el.onclick = () => {
+    document.querySelectorAll("[data-section]").forEach(e => e.classList.remove("active"));
+    el.classList.add("active");
+    ["agents","rag","hitl","tickets"].forEach(s =>
+      document.getElementById(`section-${s}`).style.display = s === el.dataset.section ? "block" : "none");
+  };
+});
+
+function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function ago(ts) { const s = Math.floor(Date.now()/1000 - ts); if (s<60) return `${s}s ago`; if (s<3600) return `${Math.floor(s/60)}m ago`; return `${Math.floor(s/3600)}h ago`; }
+
+// ---------------- Agents & Tools ----------------
+async function loadAgents() {
+  const res = await fetch(`${API}/admin/agents`);
+  const agents = await res.json();
+  const el = document.getElementById("section-agents");
+  el.innerHTML = '<div class="grid"></div>';
+  const grid = el.querySelector(".grid");
+  agents.forEach(a => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `<h3>${esc(a.name)}</h3><div class="meta">${esc(a.id)} · ${esc(a.kind)}</div>`;
+    a.tools.forEach(t => {
+      const row = document.createElement("div");
+      row.className = "tool-row";
+      row.innerHTML = `<div class="name">${esc(t.tool_name)}</div><button class="toggle ${t.enabled ? 'on':''}"></button>`;
+      row.querySelector(".toggle").onclick = async (ev) => {
+        const enabled = !ev.target.classList.contains("on");
+        await fetch(`${API}/admin/agents/${a.id}/tools`, {
+          method: "POST", headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({tool_name: t.tool_name, enabled})
+        });
+        ev.target.classList.toggle("on", enabled);
+      };
+      card.appendChild(row);
+    });
+    grid.appendChild(card);
+  });
+}
+
+// ---------------- RAG Documents ----------------
+async function loadRag() {
+  const res = await fetch(`${API}/admin/rag/documents`);
+  const docs = await res.json();
+  const el = document.getElementById("section-rag");
+  el.innerHTML = `
+    <div class="card">
+      <h3>Add document</h3>
+      <div class="meta">Reflected in the Memory/RAG agent's retrieval on its next query.</div>
+      <div class="add-doc">
+        <input id="doc-title" placeholder="Title, e.g. Credit Hold Policy CH-5" />
+      </div>
+      <div class="add-doc">
+        <textarea id="doc-body" placeholder="Document body / policy text..." rows="3" style="flex:1;"></textarea>
+      </div>
+      <button class="btn" id="doc-add">Add document</button>
+    </div>
+    <div class="card"><h3>Corpus</h3><div class="meta">${docs.length} document(s)</div><div id="doc-list"></div></div>
+  `;
+  const list = el.querySelector("#doc-list");
+  docs.forEach(d => {
+    const row = document.createElement("div");
+    row.className = "doc-row";
+    row.innerHTML = `<div class="name">${esc(d.title)}</div><button class="btn stop" style="padding:4px 10px;font-size:11px;">Remove</button>`;
+    row.querySelector("button").onclick = async () => {
+      await fetch(`${API}/admin/rag/documents/${d.doc_id}`, {method:"DELETE"});
+      loadRag();
+    };
+    list.appendChild(row);
+  });
+  el.querySelector("#doc-add").onclick = async () => {
+    const title = el.querySelector("#doc-title").value.trim();
+    const body = el.querySelector("#doc-body").value.trim();
+    if (!title || !body) return;
+    await fetch(`${API}/admin/rag/documents`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({title, body})
+    });
+    loadRag();
+  };
+}
+
+// ---------------- HITL Queue ----------------
+async function loadHitl() {
+  const res = await fetch(`${API}/admin/hitl`);
+  const tasks = await res.json();
+  const el = document.getElementById("section-hitl");
+  el.innerHTML = `<div class="card"><h3>Pending human decisions</h3><div class="meta">A run only resumes after a decision is made here.</div><div id="hitl-list"></div></div>`;
+  const list = el.querySelector("#hitl-list");
+  if (tasks.length === 0) list.innerHTML = '<div class="empty-state" style="padding:20px 0;">No HITL tasks.</div>';
+  tasks.forEach(t => {
+    const row = document.createElement("div");
+    row.className = "queue-row";
+    row.innerHTML = `
+      <div class="top-line">
+        <span class="badge ${t.status}">${t.status}</span>
+        <span class="meta">${ago(t.created_at)} · run ${t.run_id.slice(0,8)}</span>
+      </div>
+      <div class="reason">${esc(t.reason)}</div>
+      <div class="actions">
+        ${t.status === "pending" ? `
+          <button class="btn clear act-approve" style="padding:6px 12px;font-size:12px;">Approve</button>
+          <button class="btn stop act-reject" style="padding:6px 12px;font-size:12px;">Reject</button>
+        ` : `<span class="meta">Decided: ${esc(t.decision)} by ${esc(t.decided_by||'—')}</span>`}
+      </div>`;
+    if (t.status === "pending") {
+      row.querySelector(".act-approve").onclick = () => decide(t.task_id, "approve");
+      row.querySelector(".act-reject").onclick = () => decide(t.task_id, "reject");
+    }
+    list.appendChild(row);
+  });
+}
+async function decide(taskId, decision) {
+  await fetch(`${API}/admin/hitl/${taskId}/decide`, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({decision, decided_by:"admin_jane"})
+  });
+  loadHitl();
+}
+
+// ---------------- Tickets ----------------
+async function loadTickets() {
+  const res = await fetch(`${API}/admin/tickets`);
+  const tickets = await res.json();
+  const el = document.getElementById("section-tickets");
+  el.innerHTML = `<div class="card"><h3>Failure tickets</h3><div class="meta">Unplanned mid-node failures — distinct from HITL. Resolving resumes the run from its checkpoint.</div><div id="ticket-list"></div></div>`;
+  const list = el.querySelector("#ticket-list");
+  if (tickets.length === 0) list.innerHTML = '<div class="empty-state" style="padding:20px 0;">No tickets.</div>';
+  tickets.forEach(t => {
+    const row = document.createElement("div");
+    row.className = "queue-row";
+    row.innerHTML = `
+      <div class="top-line">
+        <span class="badge ${t.status}">${t.status}</span>
+        <span class="meta">${ago(t.created_at)} · run ${t.run_id.slice(0,8)} · node ${esc(t.node_name)}</span>
+      </div>
+      <div class="reason">${esc(t.error_type)}: ${esc(t.error_message)}</div>
+      <div class="actions">
+        ${t.status === "open" ? `<button class="btn ghost act-investigate" style="padding:6px 12px;font-size:12px;">Mark investigating</button>` : ""}
+        ${t.status !== "resolved" ? `<button class="btn clear act-resolve" style="padding:6px 12px;font-size:12px;">Resolve &amp; resume</button>` : ""}
+      </div>`;
+    if (t.status === "open") row.querySelector(".act-investigate").onclick = () => setStatus(t.ticket_id, "investigating");
+    if (t.status !== "resolved") row.querySelector(".act-resolve").onclick = () => setStatus(t.ticket_id, "resolved");
+    list.appendChild(row);
+  });
+}
+async function setStatus(ticketId, status) {
+  await fetch(`${API}/admin/tickets/${ticketId}/status`, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({status})
+  });
+  loadTickets();
+}
+
+function refreshAll() { loadAgents(); loadRag(); loadHitl(); loadTickets(); }
+refreshAll();
+setInterval(refreshAll, 5000);
+</script>
+</body>
+</html>

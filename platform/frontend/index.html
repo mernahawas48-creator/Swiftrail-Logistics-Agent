@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Swiftrail — User Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="traffic"><span></span><span></span><span></span></div>
+    <span class="mark"><span class="seal-dot"></span>SWIFTRAIL</span>
+    <span class="sub">USER PLATFORM</span>
+    <nav>
+      <a href="index.html" class="active">Chat</a>
+      <a href="admin.html">Admin Dashboard</a>
+    </nav>
+  </div>
+
+  <div class="shell">
+    <div class="sidebar col" id="sidebar">
+      <div class="heading">Agents</div>
+    </div>
+
+    <div class="chat-col col">
+      <div class="chat-header">
+        <div class="title" id="agent-title">Select an agent</div>
+        <div class="desc" id="agent-desc"></div>
+      </div>
+      <div class="hint" id="hint" style="display:none;"></div>
+      <div class="messages" id="messages"></div>
+      <div class="composer">
+        <input id="input" type="text" placeholder="Try: start customer 3, claim: one invoice is incorrect" />
+        <button id="send">Send</button>
+      </div>
+    </div>
+
+    <div class="track-col col" id="track-col">
+      <div class="heading">Waybill / Run Status</div>
+      <div id="track-body"><div class="empty-state">— no active run —</div></div>
+    </div>
+  </div>
+
+<script>
+const API = "http://localhost:8000/api";
+let agents = [];
+let currentAgent = null;
+let currentRunId = null;
+let pollTimer = null;
+
+const NODE_LABELS = {
+  load_account_state: "Load account state",
+  build_remediation_plan: "Build remediation plan (LATS)",
+  await_customer_action: "Awaiting customer",
+  verify_payment: "Verify payment",
+  review_evidence: "Review evidence",
+  request_more_evidence: "Request more evidence",
+  wait_for_finance_admin: "Finance admin review (HITL)",
+  execute_remediation_action: "Execute action (Constrained ReAct)",
+  complete: "Complete",
+};
+const NODE_ORDER = ["load_account_state","build_remediation_plan","await_customer_action","review_evidence",
+  "request_more_evidence","wait_for_finance_admin","execute_remediation_action","complete"];
+
+async function loadAgents() {
+  const res = await fetch(`${API}/agents`);
+  agents = await res.json();
+  const sidebar = document.getElementById("sidebar");
+  agents.forEach(a => {
+    const el = document.createElement("div");
+    el.className = "agent-item";
+    el.dataset.id = a.id;
+    const live = a.kind === "state_graph" && a.id.startsWith("graph3");
+    el.innerHTML = `<div class="name"><span class="dot ${live ? 'live' : 'stub'}"></span>${a.name}</div>
+                    <div class="kind">${a.kind}${live ? " · live" : ""}</div>`;
+    el.onclick = () => selectAgent(a);
+    sidebar.appendChild(el);
+  });
+  selectAgent(agents[0]);
+}
+
+function selectAgent(agent) {
+  currentAgent = agent;
+  currentRunId = null;
+  document.querySelectorAll(".agent-item").forEach(el => el.classList.toggle("active", el.dataset.id === agent.id));
+  document.getElementById("agent-title").textContent = agent.name;
+  document.getElementById("agent-desc").textContent = agent.description;
+  document.getElementById("messages").innerHTML = "";
+  const hint = document.getElementById("hint");
+  if (agent.id.startsWith("graph3")) {
+    hint.style.display = "block";
+    hint.textContent = "Try: \"start customer 3, claim: one invoice is incorrect\" — then reply with evidence or payment info when asked.";
+  } else {
+    hint.style.display = "none";
+  }
+  renderTrack(null);
+  if (pollTimer) clearInterval(pollTimer);
+}
+
+function addMessage(text, who, status) {
+  const wrap = document.getElementById("messages");
+  const div = document.createElement("div");
+  div.className = `msg ${who}`;
+  if (status) {
+    div.innerHTML = `<span class="status-pill ${status}">${status.replace("_"," ")}</span><br>${escapeHtml(text)}`;
+  } else {
+    div.textContent = text;
+  }
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function escapeHtml(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+async function send() {
+  const input = document.getElementById("input");
+  const text = input.value.trim();
+  if (!text || !currentAgent) return;
+  addMessage(text, "user");
+  input.value = "";
+  const res = await fetch(`${API}/chat`, {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({agent_id: currentAgent.id, message: text, run_id: currentRunId})
+  });
+  const data = await res.json();
+  if (data.run_id) currentRunId = data.run_id;
+  addMessage(data.reply, "agent", data.status);
+  if (currentRunId) {
+    refreshTrack();
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(refreshTrack, 4000);
+  }
+}
+
+async function refreshTrack() {
+  if (!currentRunId) return;
+  const res = await fetch(`${API}/runs/${currentRunId}`);
+  if (!res.ok) return;
+  const data = await res.json();
+  renderTrack(data);
+}
+
+function renderTrack(data) {
+  const body = document.getElementById("track-body");
+  if (!data) { body.innerHTML = '<div class="empty-state">— no active run —</div>'; return; }
+
+  const visited = new Set(data.history.map(h => h.node_name));
+  const status = data.run.status;
+  const currentNode = data.run.current_node;
+
+  const relevant = NODE_ORDER.filter(n => visited.has(n) || n === currentNode);
+  let html = '<div class="stamp-trail">';
+  relevant.forEach((node, i) => {
+    let cls = "done";
+    if (node === currentNode) cls = status === "ticketed" ? "blocked" : "current";
+    html += `<div class="checkpoint ${cls}">
+      <div class="seal"><span class="n">${String(i + 1).padStart(2, "0")}</span></div>
+      <div class="info">
+        <div class="label">${NODE_LABELS[node] || node}</div>`;
+    if (node === currentNode) {
+      if (status === "paused_wait") html += `<div class="note">awaiting the customer</div>`;
+      if (status === "paused_hitl") html += `<div class="note">awaiting finance-admin sign-off</div>`;
+      if (status === "ticketed") html += `<div class="note">VOID — ticket opened for an admin</div>`;
+      if (status === "completed") html += `<div class="note">cleared</div>`;
+    }
+    html += `</div></div>`;
+  });
+  html += "</div>";
+  body.innerHTML = html;
+}
+
+document.getElementById("send").onclick = send;
+document.getElementById("input").addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+
+loadAgents();
+</script>
+</body>
+</html>
