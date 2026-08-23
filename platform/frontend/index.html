@@ -56,6 +56,24 @@
     let pollTimer = null;
 
     const NODE_LABELS = {
+      load_shipment: "Load shipment",
+      validate_delivery_exception: "Validate delivery exception",
+      decompose_recovery_plan: "Decompose recovery plan",
+      retrieve_rerouting_policy: "Retrieve rerouting policy",
+      create_recovery_case: "Create recovery case",
+      generate_recovery_options: "Generate recovery options",
+      wait_for_customer: "Await customer choice",
+      evaluate_customer_choice: "Evaluate customer choice",
+      wait_for_admin: "Admin review",
+      apply_admin_decision: "Apply admin decision",
+      apply_reroute: "Apply shipment reroute",
+      verify_shipment_update: "Verify shipment update",
+      load_rate_exception: "Load rate exception",
+      retrieve_policy: "Retrieve approval policy",
+      classify_authority: "Classify approval authority",
+      auto_approve: "Auto approve",
+      failure_ticket: "Failure ticket",
+      resume_from_checkpoint: "Resume from checkpoint",
       load_account_state: "Load account state",
       build_remediation_plan: "Build remediation plan (LATS)",
       await_customer_action: "Awaiting customer",
@@ -66,9 +84,6 @@
       execute_remediation_action: "Execute action (Constrained ReAct)",
       complete: "Complete",
     };
-    const NODE_ORDER = ["load_account_state", "build_remediation_plan", "await_customer_action", "review_evidence",
-      "request_more_evidence", "wait_for_finance_admin", "execute_remediation_action", "complete"];
-
     async function loadAgents() {
       const res = await fetch(`${API}/agents`);
       agents = await res.json();
@@ -77,7 +92,7 @@
         const el = document.createElement("div");
         el.className = "agent-item";
         el.dataset.id = a.id;
-        const live = a.kind === "state_graph" && a.id.startsWith("graph3");
+        const live = a.kind === "state_graph";
         el.innerHTML = `<div class="name"><span class="dot ${live ? 'live' : 'stub'}"></span>${a.name}</div>
                     <div class="kind">${a.kind}${live ? " · live" : ""}</div>`;
         el.onclick = () => selectAgent(a);
@@ -97,6 +112,12 @@
       if (agent.id.startsWith("graph3")) {
         hint.style.display = "block";
         hint.textContent = "Try: \"start customer 3, claim: one invoice is incorrect\" — then reply with evidence or payment info when asked.";
+      } else if (agent.id === "graph1_delivery_exception") {
+        hint.style.display = "block";
+        hint.textContent = "Try: start shipment 6, employee 1, reason: customer unavailable at the delivery destination";
+      } else if (agent.id === "graph2_rate_exception") {
+        hint.style.display = "block";
+        hint.textContent = "Try: start shipment 5, employee 3";
       } else {
         hint.style.display = "none";
       }
@@ -151,11 +172,11 @@
       const body = document.getElementById("track-body");
       if (!data) { body.innerHTML = '<div class="empty-state">— no active run —</div>'; return; }
 
-      const visited = new Set(data.history.map(h => h.node_name));
+      const historyNodes = data.history.map(h => h.node_name || h.node || h.target).filter(Boolean);
       const status = data.run.status;
       const currentNode = data.run.current_node;
 
-      const relevant = NODE_ORDER.filter(n => visited.has(n) || n === currentNode);
+      const relevant = [...new Set([...historyNodes, currentNode].filter(Boolean))];
       let html = '<div class="stamp-trail">';
       relevant.forEach((node, i) => {
         let cls = "done";

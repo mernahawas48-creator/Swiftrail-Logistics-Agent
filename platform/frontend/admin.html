@@ -147,7 +147,7 @@
         row.innerHTML = `
       <div class="top-line">
         <span class="badge ${t.status}">${t.status}</span>
-        <span class="meta">${ago(t.created_at)} · run ${t.run_id.slice(0, 8)}</span>
+        <span class="meta">${esc(t.agent_id || "state graph")} · ${ago(t.created_at)} · run ${t.run_id.slice(0, 8)}</span>
       </div>
       <div class="reason">${esc(t.reason)}</div>
       <div class="actions">
@@ -185,15 +185,15 @@
         row.innerHTML = `
       <div class="top-line">
         <span class="badge ${t.status}">${t.status}</span>
-        <span class="meta">${ago(t.created_at)} · run ${t.run_id.slice(0, 8)} · node ${esc(t.node_name)}</span>
+        <span class="meta">${esc(t.agent_id || "state graph")} · ${ago(t.created_at)} · run ${t.run_id.slice(0, 8)} · node ${esc(t.node_name || t.failed_node)}</span>
       </div>
       <div class="reason">${esc(t.error_type)}: ${esc(t.error_message)}</div>
       <div class="actions">
         ${t.status === "open" ? `<button class="btn ghost act-investigate" style="padding:6px 12px;font-size:12px;">Mark investigating</button>` : ""}
-        ${t.status !== "resolved" ? `<button class="btn clear act-resolve" style="padding:6px 12px;font-size:12px;">Resolve &amp; resume</button>` : ""}
+        ${t.status === "investigating" ? `<button class="btn clear act-resolve" style="padding:6px 12px;font-size:12px;">Resolve &amp; resume</button>` : ""}
       </div>`;
         if (t.status === "open") row.querySelector(".act-investigate").onclick = () => setStatus(t.ticket_id, "investigating");
-        if (t.status !== "resolved") row.querySelector(".act-resolve").onclick = () => setStatus(t.ticket_id, "resolved");
+        if (t.status === "investigating") row.querySelector(".act-resolve").onclick = () => setStatus(t.ticket_id, "resolved");
         list.appendChild(row);
       });
     }

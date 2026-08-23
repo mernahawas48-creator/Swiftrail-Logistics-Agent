@@ -91,8 +91,18 @@ class SQLiteCheckpointStore:
         ]
 
     def resolve_task(self, task_id: str) -> None:
+        self.update_task_status(task_id, "resolved")
+
+    def update_task_status(self, task_id: str, status: str) -> None:
+        if status not in {"open", "investigating", "resolved"}:
+            raise ValueError("Unsupported task status.")
         with sqlite3.connect(self.path) as conn:
             conn.execute(
-                "UPDATE graph_tasks SET status='resolved', resolved_at=CURRENT_TIMESTAMP WHERE task_id=?",
-                (task_id,),
+                """
+                UPDATE graph_tasks
+                SET status = ?,
+                    resolved_at = CASE WHEN ? = 'resolved' THEN CURRENT_TIMESTAMP ELSE NULL END
+                WHERE task_id = ?
+                """,
+                (status, status, task_id),
             )
