@@ -17,7 +17,6 @@ import time
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Optional
 
 DB_PATH = Path(__file__).parent / "swiftrail_state.db"
 
@@ -136,7 +135,7 @@ class Checkpointer:
                 (status, node_name, now, run_id),
             )
 
-    def latest_checkpoint(self, run_id: str) -> Optional[dict]:
+    def latest_checkpoint(self, run_id: str) -> dict | None:
         with _conn() as conn:
             row = conn.execute(
                 "SELECT * FROM checkpoints WHERE run_id = ? ORDER BY seq DESC LIMIT 1",
@@ -163,12 +162,12 @@ class Checkpointer:
                 for r in rows
             ]
 
-    def get_run(self, run_id: str) -> Optional[dict]:
+    def get_run(self, run_id: str) -> dict | None:
         with _conn() as conn:
             row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
             return dict(row) if row else None
 
-    def list_runs(self, graph_name: Optional[str] = None) -> list[dict]:
+    def list_runs(self, graph_name: str | None = None) -> list[dict]:
         with _conn() as conn:
             if graph_name:
                 rows = conn.execute(
@@ -198,7 +197,7 @@ class Checkpointer:
             row = conn.execute("SELECT * FROM hitl_tasks WHERE task_id = ?", (task_id,)).fetchone()
             return dict(row)
 
-    def list_hitl_tasks(self, status: Optional[str] = None) -> list[dict]:
+    def list_hitl_tasks(self, status: str | None = None) -> list[dict]:
         with _conn() as conn:
             if status:
                 rows = conn.execute("SELECT * FROM hitl_tasks WHERE status = ? ORDER BY created_at DESC", (status,)).fetchall()
@@ -227,7 +226,7 @@ class Checkpointer:
             row = conn.execute("SELECT * FROM tickets WHERE ticket_id = ?", (ticket_id,)).fetchone()
             return dict(row)
 
-    def list_tickets(self, status: Optional[str] = None) -> list[dict]:
+    def list_tickets(self, status: str | None = None) -> list[dict]:
         with _conn() as conn:
             if status:
                 rows = conn.execute("SELECT * FROM tickets WHERE status = ? ORDER BY created_at DESC", (status,)).fetchall()
