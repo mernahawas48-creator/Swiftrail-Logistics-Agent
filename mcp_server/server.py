@@ -9,6 +9,7 @@ import tools.rate_exception
 import tools.read_tools
 import tools.resources_prompts
 from app_instance import app
+from runtime_admin_api import register_runtime_admin_api
 from runtime_setup import build_runtime_manager
 
 # Build runtime agent/tool management AFTER all MCP tools are registered.
@@ -23,6 +24,11 @@ runtime_tool_manager, agent_registry = build_runtime_manager(
         tools.portfolio,
         tools.resources_prompts,
     ],
+)
+runtime_admin_api = register_runtime_admin_api(
+    app,
+    runtime_tool_manager,
+    agent_registry,
 )
 
 

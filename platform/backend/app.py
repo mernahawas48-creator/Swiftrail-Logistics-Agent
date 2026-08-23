@@ -30,6 +30,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from platform_app.admin.runtime_client import (
+    RuntimeAdminClient,
+    RuntimeAdminClientError,
+)
 from platform_app.agent_integration import (
     MEMORY_RAG_AGENT_ID,
     PLANNING_AGENT_ID,
@@ -40,7 +44,7 @@ from platform_app.graph_integration import (
     GRAPH_2_AGENT_ID,
     PlatformGraphIntegration,
 )
-from state_graph.graph_3 import mcp_tools, registry
+from state_graph.graph_3 import mcp_tools
 from state_graph.graph_3.checkpointer import Checkpointer
 from state_graph.graph_3.graph3_credit_hold import GRAPH_NAME as G3_NAME
 from state_graph.graph_3.graph3_credit_hold import graph as g3
@@ -48,6 +52,7 @@ from state_graph.graph_3.graph3_credit_hold import graph as g3
 cp = Checkpointer()
 platform_graphs = PlatformGraphIntegration()
 platform_agents = PlatformAgentIntegration()
+runtime_admin = RuntimeAdminClient.from_env()
 
 app = FastAPI(title="Swiftrail Platform API")
 app.add_middleware(
@@ -239,10 +244,18 @@ def chat(req: ChatRequest):
 # ---------------------------------------------------------------------------
 @app.get("/api/admin/agents")
 def admin_agents():
-    out = []
-    for a in AGENTS:
-        out.append({**a, "tools": registry.list_tools(a["id"])})
-    return out
+    try:
+        return runtime_admin.list_agents()
+    except RuntimeAdminClientError as exc:
+        raise HTTPException(exc.status_code, str(exc)) from exc
+
+
+@app.get("/api/admin/runtime/health")
+def admin_runtime_health():
+    try:
+        return runtime_admin.health()
+    except RuntimeAdminClientError as exc:
+        raise HTTPException(exc.status_code, str(exc)) from exc
 
 
 class ToolChange(BaseModel):
@@ -252,8 +265,14 @@ class ToolChange(BaseModel):
 
 @app.post("/api/admin/agents/{agent_id}/tools")
 def set_tool(agent_id: str, change: ToolChange):
-    registry.set_tool_enabled(agent_id, change.tool_name, change.enabled)
-    return {"agent_id": agent_id, "tools": registry.list_tools(agent_id)}
+    try:
+        return runtime_admin.set_tool(
+            agent_id,
+            change.tool_name,
+            change.enabled,
+        )
+    except RuntimeAdminClientError as exc:
+        raise HTTPException(exc.status_code, str(exc)) from exc
 
 
 # ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@ from threading import RLock
 import session as session_state
 from app_instance import app
 from mcp.server.fastmcp import Context
+from runtime_sessions import track_session
 from schemas import AuthenticateInput
 from tool_support import (
     database_failure,
@@ -71,6 +72,7 @@ async def authenticate(request: AuthenticateInput, ctx: Context) -> dict:
             role=employee["role"],
             employee_name=employee["name"],
         )
+        track_session(ctx.session)
 
         tool_set_changed = False
         with _tool_state_lock:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from agent_registry import AgentRegistry
+from runtime_sessions import notify_tools_changed
 from runtime_tool_manager import RuntimeToolManager
 
 
@@ -12,23 +13,48 @@ def build_runtime_manager(app, modules):
             if name in server_names and callable(value):
                 functions[name] = value
 
-    manager = RuntimeToolManager(app, functions)
+    manager = RuntimeToolManager(
+        app,
+        functions,
+        notification_callback=notify_tools_changed,
+    )
     agents = AgentRegistry()
     agents.register(
-        "state_graph_1", "Delivery Exception Recovery", "state_graph"
+        "graph1_delivery_exception", "Delivery Exception Recovery", "state_graph"
     )
-    agents.register("state_graph_2", "Rate Exception Resolution", "state_graph")
-    agents.register("memory_rag", "Memory / RAG Agent", "rag")
-    agents.register("planning", "Decomposition / Planning Agent", "planning")
-    agents.register("graph3_credit_hold_remediation", "Credit-Hold Remediation", "state_graph")
+    agents.register(
+        "graph2_rate_exception", "Rate Exception Approval", "state_graph"
+    )
+    agents.register("memory_rag_agent", "Memory / RAG Agent", "memory_rag")
+    agents.register("planning_agent", "Decomposition / Planning Agent", "planning")
+    agents.register(
+        "graph3_credit_hold_remediation",
+        "Credit-Hold Remediation",
+        "state_graph",
+    )
 
     # Safe defaults: each agent starts with read/authentication capabilities;
     # write tools can be granted from the admin surface at runtime.
-    manager.registry.register_agent("state_graph_2", {"authenticate", "get_shipment_status", "get_shipment_rate_exception", "approve_rate_exception"})
-    manager.registry.register_agent("memory_rag", {"authenticate"})
-    manager.registry.register_agent("planning", {"authenticate", "get_shipment_status", "list_customer_credit_holds"})
     manager.registry.register_agent(
-        "state_graph_1",
+        "graph2_rate_exception",
+        {
+            "authenticate",
+            "get_shipment_status",
+            "get_shipment_rate_exception",
+            "approve_rate_exception",
+        },
+    )
+    manager.registry.register_agent("memory_rag_agent", {"authenticate"})
+    manager.registry.register_agent(
+        "planning_agent",
+        {
+            "authenticate",
+            "get_shipment_status",
+            "list_customer_credit_holds",
+        },
+    )
+    manager.registry.register_agent(
+        "graph1_delivery_exception",
         {
             "authenticate",
             "get_shipment_status",
