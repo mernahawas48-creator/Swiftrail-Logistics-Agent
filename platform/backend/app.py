@@ -11,15 +11,12 @@ Endpoints are grouped:
   /api/admin/rag                              -> admin: RAG doc mgmt
   /api/admin/hitl                             -> admin: HITL queue
   /api/admin/tickets                          -> admin: failure tickets
-  /api/demo/seed                              -> convenience for the demo
-
 All three state graphs and the existing memory/RAG and planning agents are
 connected to the shared user surface. The state graphs also expose their
 persisted HITL tasks and failure tickets through the admin surface.
 """
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 
@@ -43,14 +40,10 @@ from platform_app.agent_integration import (
 from platform_app.graph_integration import (
     GRAPH_1_AGENT_ID,
     GRAPH_2_AGENT_ID,
+    GRAPH_3_AGENT_ID,
     PlatformGraphIntegration,
 )
-from state_graph.graph_3 import mcp_tools
-from state_graph.graph_3.checkpointer import Checkpointer
-from state_graph.graph_3.graph3_credit_hold import GRAPH_NAME as G3_NAME
-from state_graph.graph_3.graph3_credit_hold import graph as g3
 
-cp = Checkpointer()
 platform_graphs = PlatformGraphIntegration()
 platform_agents = PlatformAgentIntegration()
 runtime_admin = RuntimeAdminClient.from_env()
@@ -70,7 +63,7 @@ FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 # use the same shape so the platform stays agent-agnostic.
 # ---------------------------------------------------------------------------
 AGENTS = [
-    {"id": G3_NAME, "name": "Credit-Hold Remediation", "kind": "state_graph",
+    {"id": GRAPH_3_AGENT_ID, "name": "Credit-Hold Remediation", "kind": "state_graph",
      "description": "Resolves overdue-invoice credit holds and invoice disputes. Owner: Person 3."},
     {"id": GRAPH_1_AGENT_ID, "name": "Delivery Exception Recovery", "kind": "state_graph",
      "description": "Reroutes shipments around delivery exceptions. Owner: Person 1."},
@@ -106,16 +99,11 @@ def list_agents():
 
 @app.get("/api/runs")
 def list_runs(graph_name: str | None = None):
-    return cp.list_runs(graph_name)
+    return platform_graphs.list_runs(graph_name)
 
 
 @app.get("/api/runs/{run_id}")
 def get_run(run_id: str):
-    run = cp.get_run(run_id)
-    if run:
-        history = cp.history(run_id)
-        latest = cp.latest_checkpoint(run_id)
-        return {"run": run, "history": history, "state": latest["state"] if latest else {}}
     integrated = platform_graphs.get_run(run_id)
     if integrated is not None:
         return integrated
@@ -125,91 +113,10 @@ def get_run(run_id: str):
     raise HTTPException(404, "run not found")
 
 
-_START_RE = re.compile(
-    r"start\s+customer\s+(?P<cust>[^\s,]+)(?:\s*,?\s*claim:\s*(?P<claim>.+))?", re.IGNORECASE
-)
-
-
-def _handle_graph3_chat(message: str, run_id: str | None) -> ChatResponse:
-    m = _START_RE.match(message.strip())
-    if m:
-        customer_id = m.group("cust")
-        claim = m.group("claim")
-        holds = mcp_tools.list_customer_credit_holds(customer_id)
-        if holds is None:
-            return ChatResponse(reply=f"No account found for customer {customer_id}. "
-                                       f"Try 'seed customer {customer_id} amount 5000 severity severe' first.")
-        new_run_id = g3.start("load_account_state", {"customer_id": customer_id, "customer_claim": claim, "log": []})
-        run = cp.get_run(new_run_id)
-        return ChatResponse(
-            run_id=new_run_id, status=run["status"], current_node=run["current_node"],
-            reply=_status_reply(new_run_id),
-        )
-
-    if not run_id:
-        return ChatResponse(reply=(
-            "Tell me which customer to work, e.g. "
-            "'start customer 3, claim: one invoice is incorrect'."
-        ))
-
-    run = cp.get_run(run_id)
-    if not run:
-        raise HTTPException(404, "run not found")
-
-    if run["status"] == "paused_hitl":
-        return ChatResponse(run_id=run_id, status=run["status"], current_node=run["current_node"], reply=(
-            "This run is waiting on a finance-admin decision — it can only continue "
-            "once an admin acts on it from the Admin Dashboard."
-        ))
-    if run["status"] == "ticketed":
-        return ChatResponse(run_id=run_id, status=run["status"], current_node=run["current_node"], reply=(
-            "This run hit an unexpected failure and is now a ticket — an admin needs to "
-            "resolve it from the Admin Dashboard before it can continue."
-        ))
-    if run["status"] == "completed":
-        return ChatResponse(run_id=run_id, status=run["status"], current_node=run["current_node"],
-                             reply="This run is already complete. Start a new customer to begin another.")
-
-    # paused_wait: the free-text message IS the customer's action.
-    latest = cp.latest_checkpoint(run_id)
-    waiting_on = latest["state"].get("_waiting_on")
-    extra = {}
-    if waiting_on == "dispute_evidence":
-        extra["customer_evidence"] = message
-    elif waiting_on == "payment_confirmation":
-        amt_match = re.search(r"[\d.,]+", message.replace(",", ""))
-        amt = float(amt_match.group()) if amt_match else latest["state"].get("overdue_amount", 0)
-        extra["payment_confirmed"] = amt
-    else:
-        return ChatResponse(run_id=run_id, status=run["status"], current_node=run["current_node"],
-                             reply="I'm not currently waiting on anything from you for this run.")
-
-    g3.resume(run_id, extra_state=extra)
-    return ChatResponse(run_id=run_id, status=cp.get_run(run_id)["status"],
-                         current_node=cp.get_run(run_id)["current_node"], reply=_status_reply(run_id))
-
-
-def _status_reply(run_id: str) -> str:
-    run = cp.get_run(run_id)
-    latest = cp.latest_checkpoint(run_id)
-    log_tail = latest["state"].get("log", [])[-2:]
-    tail = " ".join(log_tail)
-    if run["status"] == "paused_wait":
-        waiting_on = latest["state"].get("_waiting_on")
-        if waiting_on == "dispute_evidence":
-            return f"{tail} Waiting on you: please submit dispute evidence for this invoice."
-        return f"{tail} Waiting on you: please confirm payment (amount)."
-    if run["status"] == "paused_hitl":
-        return f"{tail} This now needs finance-admin sign-off — an admin has been notified."
-    if run["status"] == "ticketed":
-        return f"{tail} Something went wrong on our end — a ticket has been opened for an admin."
-    if run["status"] == "completed":
-        return f"{tail} All done."
-    return tail or "Working on it..."
-
-
 AGENT_CHAT_HANDLERS = {
-    G3_NAME: _handle_graph3_chat,
+    GRAPH_3_AGENT_ID: lambda message, run_id: ChatResponse(
+        **platform_graphs.chat(GRAPH_3_AGENT_ID, message, run_id)
+    ),
     GRAPH_1_AGENT_ID: lambda message, run_id: ChatResponse(
         **platform_graphs.chat(GRAPH_1_AGENT_ID, message, run_id)
     ),
@@ -351,12 +258,7 @@ def reindex_rag_docs():
 # ---------------------------------------------------------------------------
 @app.get("/api/admin/hitl")
 def list_hitl(status: str | None = None):
-    tasks = cp.list_hitl_tasks(status)
-    for t in tasks:
-        run = cp.get_run(t["run_id"])
-        t["graph_status"] = run["status"] if run else None
-        t["agent_id"] = G3_NAME
-    tasks.extend(platform_graphs.hitl_tasks())
+    tasks = platform_graphs.hitl_tasks()
     if status is not None:
         tasks = [task for task in tasks if task["status"] == status]
     return tasks
@@ -370,12 +272,6 @@ class HitlDecision(BaseModel):
 
 @app.post("/api/admin/hitl/{task_id}/decide")
 def decide_hitl(task_id: str, body: HitlDecision):
-    tasks = {t["task_id"]: t for t in cp.list_hitl_tasks()}
-    task = tasks.get(task_id)
-    if task:
-        cp.decide_hitl_task(task_id, body.decision, body.decided_by)
-        g3.resume(task["run_id"], extra_state={"finance_decision": body.decision})
-        return {"task_id": task_id, "run": cp.get_run(task["run_id"])}
     result = platform_graphs.decide_hitl(
         task_id,
         decision=body.decision,
@@ -392,12 +288,7 @@ def decide_hitl(task_id: str, body: HitlDecision):
 # ---------------------------------------------------------------------------
 @app.get("/api/admin/tickets")
 def list_tickets(status: str | None = None):
-    tickets = cp.list_tickets(status)
-    for t in tickets:
-        run = cp.get_run(t["run_id"])
-        t["graph_status"] = run["status"] if run else None
-        t["agent_id"] = G3_NAME
-    tickets.extend(platform_graphs.tickets())
+    tickets = platform_graphs.tickets()
     if status is not None:
         tickets = [ticket for ticket in tickets if ticket["status"] == status]
     return tickets
@@ -409,45 +300,10 @@ class TicketStatusChange(BaseModel):
 
 @app.post("/api/admin/tickets/{ticket_id}/status")
 def set_ticket_status(ticket_id: str, body: TicketStatusChange):
-    tickets = {t["ticket_id"]: t for t in cp.list_tickets()}
-    ticket = tickets.get(ticket_id)
-    if ticket:
-        updated = cp.set_ticket_status(ticket_id, body.status)
-        if body.status == "resolved":
-            g3.resume(ticket["run_id"])
-        return {"ticket": updated, "run": cp.get_run(ticket["run_id"])}
     result = platform_graphs.set_ticket_status(ticket_id, body.status)
     if result is None:
         raise HTTPException(404, "ticket not found")
     return result
-
-
-# ---------------------------------------------------------------------------
-# Demo convenience
-# ---------------------------------------------------------------------------
-class SeedRequest(BaseModel):
-    customer_id: str
-    amount: float
-    severity: str = "severe"
-
-
-@app.post("/api/demo/seed")
-def seed(req: SeedRequest):
-    mcp_tools.seed_customer(req.customer_id, req.amount, req.severity)
-    return {"seeded": req.customer_id}
-
-
-@app.post("/api/demo/force-tool-failure/{run_id}")
-def force_tool_failure(run_id: str):
-    """Test-only: flags the next execute_remediation_action call on this run
-    to fail, so the ticket path can be exercised on demand."""
-    latest = cp.latest_checkpoint(run_id)
-    if not latest:
-        raise HTTPException(404, "run not found")
-    state = latest["state"]
-    state["_force_tool_failure"] = True
-    cp.save(run_id, latest["node_name"], state, status=cp.get_run(run_id)["status"])
-    return {"flagged": run_id}
 
 
 if FRONTEND_DIR.exists():

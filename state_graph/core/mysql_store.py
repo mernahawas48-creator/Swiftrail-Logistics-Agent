@@ -93,6 +93,27 @@ class MySQLCheckpointStore:
         row = self._execute(operation)
         return SharedGraphState.from_dict(self._load(row["state_json"])) if row else None
 
+    def list_runs(self, graph_name: str | None = None) -> list[SharedGraphState]:
+        def operation(cursor):
+            if graph_name is None:
+                cursor.execute(
+                    "SELECT state_json FROM graph_runs ORDER BY updated_at DESC"
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT state_json FROM graph_runs
+                    WHERE graph_name = %s ORDER BY updated_at DESC
+                    """,
+                    (graph_name,),
+                )
+            return cursor.fetchall()
+
+        return [
+            SharedGraphState.from_dict(self._load(row["state_json"]))
+            for row in self._execute(operation)
+        ]
+
     def save_checkpoint(
         self, state: SharedGraphState, *, node: str, event: str
     ) -> int:

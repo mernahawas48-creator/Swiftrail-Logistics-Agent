@@ -126,12 +126,31 @@ class ApproveRateExceptionInput(SessionScopedInput):
     )
 
 
-class ReleaseCreditHoldInput(SessionScopedInput):
-    hold_id: int = Field(
+class CreditHoldReleaseDecision(StrictInputModel):
+    confirm_release: bool = Field(
         ...,
-        gt=0,
-        description="Positive identifier of an active credit hold.",
-        examples=[2],
+        description="True only when the human explicitly authorizes release.",
+    )
+    authorization_note: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Human finance authorization rationale for the severe release.",
+    )
+
+    @field_validator("authorization_note")
+    @classmethod
+    def reject_placeholder_note(cls, value: str) -> str:
+        if value.lower() in {"test note", "no reason", "n/a", "unknown"}:
+            raise ValueError("authorization_note must contain a meaningful rationale")
+        return value
+
+
+class ReleaseCreditHoldInput(SessionScopedInput):
+    hold_id: int = Field(..., gt=0)
+    decision: CreditHoldReleaseDecision | None = Field(
+        default=None,
+        description="Optional HITL decision already collected by the platform graph.",
     )
 
 
@@ -175,26 +194,6 @@ class PortfolioRiskSweepInput(SessionScopedInput):
     )
 
 
-
-
-class CreditHoldReleaseDecision(StrictInputModel):
-    confirm_release: bool = Field(
-        ...,
-        description="True only when the human explicitly authorizes release.",
-    )
-    authorization_note: str = Field(
-        ...,
-        min_length=10,
-        max_length=500,
-        description="Human finance authorization rationale for the severe release.",
-    )
-
-    @field_validator("authorization_note")
-    @classmethod
-    def reject_placeholder_note(cls, value: str) -> str:
-        if value.lower() in {"test note", "no reason", "n/a", "unknown"}:
-            raise ValueError("authorization_note must contain a meaningful rationale")
-        return value
 
 
 EmployeeRole = Literal["sales_rep", "finance_manager"]

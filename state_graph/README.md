@@ -75,6 +75,26 @@ The earlier `RateExceptionGraph` and graph-specific SQLite store remain only as
 legacy compatibility modules; the platform and production builder no longer
 use them. Unit tests exercise Graph 2 through the shared SQLite test store.
 
+## Graph 3 — Credit-Hold Remediation
+
+Graph 3 now uses the same `GraphEngine`, `GraphService`, `SharedGraphState`,
+MySQL checkpoint store, HITL queue, and failure-ticket lifecycle as Graphs 1
+and 2. It reads invoices and active credit holds through the live MCP server
+and releases an eligible hold through the protected `release_credit_hold`
+operation instead of maintaining a second SQLite business database.
+
+The graph waits for either payment confirmation or dispute evidence. Weak
+evidence cycles back to the customer wait node. A complete payment on a minor
+hold can continue directly; a severe hold pauses for a persisted finance
+decision. The platform passes that approved decision into the MCP operation so
+the user is not asked to approve the same action twice. Unexpected MCP or DB
+failures create a ticket and resume at the exact failed node after resolution.
+
+The former Graph 3 engine, checkpointer, mock business tools, tool registry,
+and fake seed/failure endpoints were removed. Mistral LATS planning and
+constrained ReAct are intentionally left for their own follow-up issue, after
+this production migration is stable and tested.
+
 ## Tests
 
 ```powershell

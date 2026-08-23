@@ -11,6 +11,8 @@ class CheckpointStore(Protocol):
 
     def load_run(self, run_id: str) -> SharedGraphState | None: ...
 
+    def list_runs(self, graph_name: str | None = None) -> list[SharedGraphState]: ...
+
     def save_checkpoint(
         self,
         state: SharedGraphState,

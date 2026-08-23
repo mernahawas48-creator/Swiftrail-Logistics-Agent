@@ -56,6 +56,8 @@ def test_checkpoint_survives_new_store_instance(tmp_path: Path):
     assert restarted.current_node == "second"
     assert restarted.revision == 1
     assert len(_store(tmp_path).checkpoint_history("run-1")) == 2
+    assert _store(tmp_path).list_runs("demo")[0].run_id == "run-1"
+    assert _store(tmp_path).list_runs("another_graph") == []
 
 
 def test_node_execution_result_is_durable_and_idempotent(tmp_path: Path):

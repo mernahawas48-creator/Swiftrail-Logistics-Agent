@@ -138,6 +138,17 @@ class SQLiteCheckpointStore:
             ).fetchone()
         return SharedGraphState.from_dict(self._load(row[0])) if row else None
 
+    def list_runs(self, graph_name: str | None = None) -> list[SharedGraphState]:
+        query = "SELECT state_json FROM graph_runs"
+        parameters: tuple[str, ...] = ()
+        if graph_name is not None:
+            query += " WHERE graph_name = ?"
+            parameters = (graph_name,)
+        query += " ORDER BY updated_at DESC"
+        with self._connect() as connection:
+            rows = connection.execute(query, parameters).fetchall()
+        return [SharedGraphState.from_dict(self._load(row[0])) for row in rows]
+
     def save_checkpoint(
         self, state: SharedGraphState, *, node: str, event: str
     ) -> int:
