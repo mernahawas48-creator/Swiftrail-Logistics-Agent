@@ -20,6 +20,7 @@ def build_runtime_manager(app, modules):
     agents.register("state_graph_2", "Rate Exception Resolution", "state_graph")
     agents.register("memory_rag", "Memory / RAG Agent", "rag")
     agents.register("planning", "Decomposition / Planning Agent", "planning")
+    agents.register("graph3_credit_hold_remediation", "Credit-Hold Remediation", "state_graph")
 
     # Safe defaults: each agent starts with read/authentication capabilities;
     # write tools can be granted from the admin surface at runtime.
@@ -33,6 +34,15 @@ def build_runtime_manager(app, modules):
             "get_shipment_status",
             "create_delivery_recovery_case",
             "apply_shipment_reroute",
+        },
+    )
+    manager.registry.register_agent(
+       "graph3_credit_hold_remediation",
+       {
+           "authenticate",
+           "list_customer_invoices",
+           "list_customer_credit_holds",
+           "release_credit_hold",
         },
     )
     return manager, agents
