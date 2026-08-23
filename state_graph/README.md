@@ -90,10 +90,25 @@ decision. The platform passes that approved decision into the MCP operation so
 the user is not asked to approve the same action twice. Unexpected MCP or DB
 failures create a ticket and resume at the exact failed node after resolution.
 
+### LLM additions
+
+1. **LATS remediation planning:** `build_remediation_plan` runs a bounded
+   Mistral LATS search over dispute-review and payment-confirmation branches.
+   A grounded environment checks the plan against the MCP account snapshot,
+   requires an explicit allowed action marker, preserves severe-hold finance
+   approval, and rejects claims that an MCP write already succeeded. The
+   selected plan, score, iterations, and search tree are checkpointed.
+2. **Constrained ReAct:** `classify_release_action` calls Mistral after valid
+   customer evidence or payment confirmation. Its only allowed MCP operation
+   is `release_credit_hold`; a server-side guard forces severe holds through
+   HITL even if the model attempts to choose direct release.
+
+Invalid LATS or ReAct output raises a normal node failure, producing a durable
+ticket that resumes from the exact failed LLM node after resolution. Unit
+tests inject offline models and verify both additions without API usage.
+
 The former Graph 3 engine, checkpointer, mock business tools, tool registry,
-and fake seed/failure endpoints were removed. Mistral LATS planning and
-constrained ReAct are intentionally left for their own follow-up issue, after
-this production migration is stable and tested.
+and fake seed/failure endpoints remain removed from the production path.
 
 ## Tests
 
