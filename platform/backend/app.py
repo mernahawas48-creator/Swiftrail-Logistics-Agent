@@ -28,8 +28,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from platform_app.admin.rag_service import PlatformRAGService
 from platform_app.admin.runtime_client import (
     RuntimeAdminClient,
     RuntimeAdminClientError,
@@ -53,6 +54,7 @@ cp = Checkpointer()
 platform_graphs = PlatformGraphIntegration()
 platform_agents = PlatformAgentIntegration()
 runtime_admin = RuntimeAdminClient.from_env()
+rag_admin = PlatformRAGService()
 
 app = FastAPI(title="Swiftrail Platform API")
 app.add_middleware(
@@ -279,44 +281,69 @@ def set_tool(agent_id: str, change: ToolChange):
 # ADMIN SURFACE — RAG documents
 # ---------------------------------------------------------------------------
 class RagDoc(BaseModel):
-    title: str
-    body: str
+    title: str = Field(min_length=5, max_length=180)
+    body: str = Field(min_length=10)
+    department: str = Field(default="operations", min_length=2, max_length=80)
+    document_type: str = Field(default="policy", min_length=2, max_length=80)
+    access_roles: list[str] = Field(
+        default_factory=lambda: ["sales_rep", "finance_manager"],
+        min_length=1,
+    )
+    section_prefix: str = Field(default="ADM", pattern=r"^[A-Za-z]{2,5}$")
+
+
+class RagUpdate(BaseModel):
+    body: str = Field(min_length=10)
+
+
+def _rag_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, KeyError):
+        return HTTPException(404, "RAG document was not found.")
+    if isinstance(exc, PermissionError):
+        return HTTPException(403, str(exc))
+    if isinstance(exc, ValueError):
+        return HTTPException(400, str(exc))
+    return HTTPException(503, f"RAG/Qdrant update failed: {exc}")
 
 
 @app.get("/api/admin/rag/documents")
 def list_rag_docs():
-    import sqlite3
-    conn = sqlite3.connect(mcp_tools.DB_PATH)
-    conn.row_factory = sqlite3.Row
-    rows = conn.execute("SELECT * FROM rag_documents ORDER BY added_at DESC").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+    try:
+        return rag_admin.list_documents()
+    except Exception as exc:
+        raise _rag_error(exc) from exc
 
 
 @app.post("/api/admin/rag/documents")
 def add_rag_doc(doc: RagDoc):
-    import sqlite3
-    import time
-    import uuid
-    doc_id = str(uuid.uuid4())
-    conn = sqlite3.connect(mcp_tools.DB_PATH)
-    conn.execute(
-        "INSERT INTO rag_documents (doc_id, title, body, added_at) VALUES (?, ?, ?, ?)",
-        (doc_id, doc.title, doc.body, time.time()),
-    )
-    conn.commit()
-    conn.close()
-    return {"doc_id": doc_id}
+    try:
+        return rag_admin.add_document(**doc.model_dump())
+    except Exception as exc:
+        raise _rag_error(exc) from exc
+
+
+@app.put("/api/admin/rag/documents/{doc_id}")
+def update_rag_doc(doc_id: str, update: RagUpdate):
+    try:
+        return rag_admin.update_document(doc_id, update.body)
+    except Exception as exc:
+        raise _rag_error(exc) from exc
 
 
 @app.delete("/api/admin/rag/documents/{doc_id}")
 def delete_rag_doc(doc_id: str):
-    import sqlite3
-    conn = sqlite3.connect(mcp_tools.DB_PATH)
-    conn.execute("DELETE FROM rag_documents WHERE doc_id = ?", (doc_id,))
-    conn.commit()
-    conn.close()
-    return {"deleted": doc_id}
+    try:
+        return rag_admin.remove_document(doc_id)
+    except Exception as exc:
+        raise _rag_error(exc) from exc
+
+
+@app.post("/api/admin/rag/reindex")
+def reindex_rag_docs():
+    try:
+        return rag_admin.reindex()
+    except Exception as exc:
+        raise _rag_error(exc) from exc
 
 
 # ---------------------------------------------------------------------------

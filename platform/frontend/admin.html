@@ -104,29 +104,44 @@
     // ---------------- RAG Documents ----------------
     async function loadRag() {
       const res = await fetch(`${API}/admin/rag/documents`);
-      const docs = await res.json();
       const el = document.getElementById("section-rag");
+      const docs = await res.json();
+      if (!res.ok) {
+        el.innerHTML = `<div class="card"><h3>RAG corpus unavailable</h3><div class="meta">${esc(docs.detail)}</div></div>`;
+        return;
+      }
       el.innerHTML = `
     <div class="card">
       <h3>Add document</h3>
-      <div class="meta">Reflected in the Memory/RAG agent's retrieval on its next query.</div>
+      <div class="meta">The corpus and Qdrant are rebuilt before this change is accepted.</div>
       <div class="add-doc">
-        <input id="doc-title" placeholder="Title, e.g. Credit Hold Policy CH-5" />
+        <input id="doc-title" placeholder="Title, e.g. Rail Diversion Policy" />
+        <input id="doc-prefix" placeholder="Section code, e.g. RDP" maxlength="5" />
+      </div>
+      <div class="add-doc">
+        <input id="doc-department" value="operations" placeholder="Department" />
+        <input id="doc-type" value="policy" placeholder="Document type" />
       </div>
       <div class="add-doc">
         <textarea id="doc-body" placeholder="Document body / policy text..." rows="3" style="flex:1;"></textarea>
       </div>
+      <div class="meta"><label><input type="checkbox" id="role-sales" checked /> Sales rep</label> &nbsp; <label><input type="checkbox" id="role-finance" checked /> Finance manager</label></div>
       <button class="btn" id="doc-add">Add document</button>
+      <span class="meta" id="rag-status"></span>
     </div>
-    <div class="card"><h3>Corpus</h3><div class="meta">${docs.length} document(s)</div><div id="doc-list"></div></div>
+    <div class="card"><h3>Live corpus</h3><div class="meta">${docs.length} document(s) · built-in course documents are protected</div><button class="btn ghost" id="rag-reindex" style="margin:10px 0;">Re-index Qdrant</button><div id="doc-list"></div></div>
   `;
       const list = el.querySelector("#doc-list");
       docs.forEach(d => {
         const row = document.createElement("div");
         row.className = "doc-row";
-        row.innerHTML = `<div class="name">${esc(d.title)}</div><button class="btn stop" style="padding:4px 10px;font-size:11px;">Remove</button>`;
-        row.querySelector("button").onclick = async () => {
-          await fetch(`${API}/admin/rag/documents/${d.doc_id}`, { method: "DELETE" });
+        row.innerHTML = `<div><div class="name">${esc(d.title)}</div><div class="meta">${esc(d.department)} · ${esc(d.document_type)} · ${esc(d.doc_id)}</div></div>${d.removable ? '<button class="btn stop" style="padding:4px 10px;font-size:11px;">Remove</button>' : '<span class="meta">Built-in</span>'}`;
+        const remove = row.querySelector("button");
+        if (remove) remove.onclick = async () => {
+          remove.disabled = true;
+          const result = await fetch(`${API}/admin/rag/documents/${d.doc_id}`, { method: "DELETE" });
+          const payload = await result.json();
+          if (!result.ok) alert(payload.detail || "Document removal failed.");
           loadRag();
         };
         list.appendChild(row);
@@ -134,11 +149,36 @@
       el.querySelector("#doc-add").onclick = async () => {
         const title = el.querySelector("#doc-title").value.trim();
         const body = el.querySelector("#doc-body").value.trim();
-        if (!title || !body) return;
-        await fetch(`${API}/admin/rag/documents`, {
+        const section_prefix = el.querySelector("#doc-prefix").value.trim();
+        const access_roles = [];
+        if (el.querySelector("#role-sales").checked) access_roles.push("sales_rep");
+        if (el.querySelector("#role-finance").checked) access_roles.push("finance_manager");
+        if (!title || !body || !section_prefix || !access_roles.length) {
+          alert("Complete the title, section code, text, and at least one role.");
+          return;
+        }
+        const button = el.querySelector("#doc-add");
+        button.disabled = true;
+        el.querySelector("#rag-status").textContent = " Re-indexing Qdrant...";
+        const result = await fetch(`${API}/admin/rag/documents`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, body })
+          body: JSON.stringify({
+            title, body, section_prefix, access_roles,
+            department: el.querySelector("#doc-department").value.trim(),
+            document_type: el.querySelector("#doc-type").value.trim()
+          })
         });
+        const payload = await result.json();
+        if (!result.ok) alert(payload.detail || "Document indexing failed.");
+        loadRag();
+      };
+      el.querySelector("#rag-reindex").onclick = async ev => {
+        ev.target.disabled = true;
+        ev.target.textContent = "Re-indexing...";
+        const result = await fetch(`${API}/admin/rag/reindex`, { method: "POST" });
+        const payload = await result.json();
+        if (!result.ok) alert(payload.detail || "Re-index failed.");
+        else alert(`Qdrant refreshed: ${payload.points} points in ${payload.collection}.`);
         loadRag();
       };
     }
@@ -217,7 +257,8 @@
 
     function refreshAll() { loadAgents(); loadRag(); loadHitl(); loadTickets(); }
     refreshAll();
-    setInterval(refreshAll, 5000);
+    // Do not reload the RAG form while an admin is typing a document.
+    setInterval(() => { loadAgents(); loadHitl(); loadTickets(); }, 5000);
   </script>
 </body>
 
