@@ -65,8 +65,13 @@
     // ---------------- Agents & Tools ----------------
     async function loadAgents() {
       const res = await fetch(`${API}/admin/agents`);
-      const agents = await res.json();
       const el = document.getElementById("section-agents");
+      if (!res.ok) {
+        const error = await res.json();
+        el.innerHTML = `<div class="card"><h3>Live MCP runtime unavailable</h3><div class="meta">${esc(error.detail || "Could not load runtime tools.")}</div></div>`;
+        return;
+      }
+      const agents = await res.json();
       el.innerHTML = '<div class="grid"></div>';
       const grid = el.querySelector(".grid");
       agents.forEach(a => {
@@ -76,14 +81,19 @@
         a.tools.forEach(t => {
           const row = document.createElement("div");
           row.className = "tool-row";
-          row.innerHTML = `<div class="name">${esc(t.tool_name)}</div><button class="toggle ${t.enabled ? 'on' : ''}"></button>`;
+          row.innerHTML = `<div class="name">${esc(t.tool_name)}${t.protected ? ' · required' : ''}</div><button class="toggle ${t.enabled ? 'on' : ''}" ${t.protected ? 'disabled title="Required tool"' : ''}></button>`;
           row.querySelector(".toggle").onclick = async (ev) => {
+            if (t.protected) return;
             const enabled = !ev.target.classList.contains("on");
-            await fetch(`${API}/admin/agents/${a.id}/tools`, {
+            const update = await fetch(`${API}/admin/agents/${a.id}/tools`, {
               method: "POST", headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ tool_name: t.tool_name, enabled })
             });
-            ev.target.classList.toggle("on", enabled);
+            if (!update.ok) {
+              const error = await update.json();
+              alert(error.detail || "The live MCP tool change failed.");
+            }
+            loadAgents();
           };
           card.appendChild(row);
         });

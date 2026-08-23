@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, ClassVar
 
 
 @dataclass
@@ -45,11 +46,17 @@ class RuntimeToolManager:
     still has permission to use it.
     """
 
-    PROTECTED_TOOLS = {"authenticate"}
+    PROTECTED_TOOLS: ClassVar[set[str]] = {"authenticate"}
 
-    def __init__(self, server: Any, tool_functions: dict[str, Callable[..., Any]]):
+    def __init__(
+        self,
+        server: Any,
+        tool_functions: dict[str, Callable[..., Any]],
+        notification_callback: Callable[[], Awaitable[None]] | None = None,
+    ):
         self.server = server
         self.tool_functions = dict(tool_functions)
+        self.notification_callback = notification_callback
         self.registry = AgentToolRegistry()
         self._lock = asyncio.Lock()
 
@@ -124,6 +131,9 @@ class RuntimeToolManager:
             self.server.remove_tool(name)
 
     async def _notify_tools_changed(self) -> None:
+        if self.notification_callback is not None:
+            await self.notification_callback()
+            return
         notifier = getattr(self.server, "notify_tools_changed", None)
         if notifier is None:
             return
