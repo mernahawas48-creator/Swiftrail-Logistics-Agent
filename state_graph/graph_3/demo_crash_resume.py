@@ -18,7 +18,6 @@ What it does:
 """
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from pathlib import Path
@@ -41,6 +40,7 @@ def main():
         capture_output=True,
         text=True,
         cwd=str(Path(__file__).parent.parent.parent),
+        check=False,
     )
     print(proc.stdout)
     if proc.stderr:
@@ -50,7 +50,7 @@ def main():
     run_id = proc.stdout.strip().splitlines()[-1]
     cp = Checkpointer()
     checkpoint = cp.latest_checkpoint(run_id)
-    print(f"\n--- checkpoint on disk after kill ---")
+    print("\n--- checkpoint on disk after kill ---")
     print(f"next node queued to run: {checkpoint['node_name']}  (load_account_state already completed)")
     print(f"state collected so far: invoices={len(checkpoint['state'].get('invoices', []))}, "
           f"hold_severity={checkpoint['state'].get('credit_hold', {}).get('severity')}")

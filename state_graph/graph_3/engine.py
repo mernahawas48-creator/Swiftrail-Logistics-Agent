@@ -29,11 +29,10 @@ ever starts the next one.
 """
 from __future__ import annotations
 
-import time
 import traceback
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable, Optional
 
 from .checkpointer import Checkpointer
 
@@ -42,7 +41,7 @@ NodeFn = Callable[[dict], "NodeResult"]
 
 @dataclass
 class NodeResult:
-    next_node: Optional[str]   # None = graph finished
+    next_node: str | None   # None = graph finished
     state: dict
 
 
@@ -80,7 +79,7 @@ class StateGraph:
     # optional: simulate a hard process kill right after a given node commits
     # its checkpoint, for the crash-and-resume demo. Set via env var in the
     # demo script rather than in normal operation.
-    crash_after_node: Optional[str] = None
+    crash_after_node: str | None = None
 
     def node(self, name: str):
         def _register(fn: NodeFn):
@@ -94,7 +93,7 @@ class StateGraph:
         self._drive(run_id, initial_node, initial_state)
         return run_id
 
-    def resume(self, run_id: str, extra_state: Optional[dict] = None) -> None:
+    def resume(self, run_id: str, extra_state: dict | None = None) -> None:
         """Continue a paused/ticketed run from its last checkpoint. This is
         the ONLY way execution advances again — a HITL decision or a ticket
         resolution calls this, never a fresh start()."""
@@ -135,7 +134,7 @@ class StateGraph:
                 state["_last_ticket_id"] = ticket_id
                 self.checkpointer.save(run_id, current, state, status="ticketed")
                 return
-            except Exception as exc:  # noqa: BLE001 — any unhandled node error becomes a ticket
+            except Exception as exc:
                 ticket_id = self.checkpointer.create_ticket(
                     run_id, current, type(exc).__name__, f"{exc}\n{traceback.format_exc(limit=3)}"
                 )

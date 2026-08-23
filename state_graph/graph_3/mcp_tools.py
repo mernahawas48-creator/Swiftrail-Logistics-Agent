@@ -15,11 +15,9 @@ db/ would.
 from __future__ import annotations
 
 import sqlite3
-import time
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional
 
 DB_PATH = Path(__file__).parent / "swiftrail_state.db"
 
@@ -95,7 +93,7 @@ def list_customer_invoices(customer_id: str) -> list[dict]:
         return [dict(r) for r in rows]
 
 
-def list_customer_credit_holds(customer_id: str) -> Optional[dict]:
+def list_customer_credit_holds(customer_id: str) -> dict | None:
     _ensure_schema()
     with _conn() as conn:
         row = conn.execute("SELECT * FROM mock_credit_holds WHERE customer_id = ?", (customer_id,)).fetchone()
