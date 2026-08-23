@@ -54,9 +54,16 @@ admin approves -> apply_reroute -> verify -> complete
 
 ## Graph 2 — Rate Exception Approval & Recovery
 
-Graph 2 remains under `state_graph/graph_2/`. Its business nodes are owned by
-Person 2. It should be migrated to the shared store and engine instead of
-maintaining a graph-specific checkpoint implementation.
+Graph 2 uses the same `GraphEngine`, `GraphService`, `SharedGraphState`, HITL
+node, ticket lifecycle, execution receipts, and MySQL checkpoint store as
+Graph 1. Its business definition remains under `state_graph/graph_2/` and
+branches between delegated auto-approval and persisted finance-manager HITL.
+Policy retrieval and constrained decision planning are injected node services,
+while all operational reads and writes pass through the existing MCP server.
+
+The earlier `RateExceptionGraph` and graph-specific SQLite store remain only as
+legacy compatibility modules; the platform and production builder no longer
+use them. Unit tests exercise Graph 2 through the shared SQLite test store.
 
 ## Tests
 

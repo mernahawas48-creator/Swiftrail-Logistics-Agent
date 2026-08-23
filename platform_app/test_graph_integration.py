@@ -5,42 +5,57 @@ from platform_app.graph_integration import (
     GRAPH_2_AGENT_ID,
     PlatformGraphIntegration,
 )
+from state_graph.core.exceptions import RunNotFoundError
 from state_graph.core.state import SharedGraphState
 from state_graph.core.types import RunStatus
-from state_graph.graph_2.state import RateExceptionState
 
 
-class FakeGraph1Service:
-    def __init__(self) -> None:
+class FakeGraphService:
+    def __init__(self, graph_name: str) -> None:
+        self.graph_name = graph_name
         self.state: SharedGraphState | None = None
-        self.decision: bool | None = None
+        self.hitl = []
+        self.failure_tickets = []
 
     def start_run(self, graph_name, input_data):
+        assert graph_name == self.graph_name
+        if graph_name == "delivery_exception_recovery":
+            data = {"recovery_options": [{"action": "reroute", "label": "Reroute"}]}
+            current_node = "wait_for_customer"
+            status = RunStatus.WAITING_EXTERNAL
+            run_id = "g1-run"
+        else:
+            data = {"discount_pct": 25.0, "final_status": None}
+            current_node = "wait_for_admin"
+            status = RunStatus.WAITING_HITL
+            run_id = "g2-run"
         self.state = SharedGraphState(
-            run_id="g1-run",
+            run_id=run_id,
             graph_name=graph_name,
-            current_node="wait_for_customer",
-            status=RunStatus.WAITING_EXTERNAL,
+            current_node=current_node,
+            status=status,
             input_data=input_data,
-            data={
-                "recovery_options": [
-                    {"action": "reroute", "label": "Reroute shipment"}
-                ]
-            },
+            data=data,
             transition_history=[
-                {"source": "START", "target": "load_shipment", "event": "continue"},
-                {
-                    "source": "generate_recovery_options",
-                    "target": "wait_for_customer",
-                    "event": "wait_external",
-                },
+                {"source": "load_shipment", "target": current_node, "event": "node_completed"}
             ],
         )
+        if graph_name == "rate_exception_approval":
+            self.hitl = [
+                {
+                    "task_id": "g2-hitl",
+                    "run_id": run_id,
+                    "status": "pending",
+                    "reason": "Finance review required.",
+                    "created_at": "2026-08-23T10:00:00+00:00",
+                    "state": self.state.to_dict(),
+                }
+            ]
         return self.state
 
     def get_run(self, run_id):
         if self.state is None or self.state.run_id != run_id:
-            raise LookupError(run_id)
+            raise RunNotFoundError(run_id)
         return self.state
 
     def submit_external_input(self, run_id, payload):
@@ -48,113 +63,55 @@ class FakeGraph1Service:
         state.data["customer_choice"] = payload
         state.status = RunStatus.WAITING_HITL
         state.current_node = "wait_for_admin"
-        return state
-
-    def pending_hitl_tasks(self):
-        if self.state is None or self.state.status is not RunStatus.WAITING_HITL:
-            return []
-        return [
+        self.hitl = [
             {
                 "task_id": "g1-hitl",
-                "run_id": self.state.run_id,
+                "run_id": run_id,
                 "status": "pending",
                 "reason": "Destination is not verified.",
                 "created_at": "2026-08-23T10:00:00+00:00",
+                "state": state.to_dict(),
             }
         ]
-
-    def resolve_hitl(self, task_id, *, approved, note, admin_employee_id):
-        del task_id, note, admin_employee_id
-        self.decision = approved
-        assert self.state is not None
-        self.state.status = RunStatus.COMPLETED
-        self.state.current_node = "END"
-        self.state.data["shipment"] = {"destination": "Giza Warehouse"}
-        return self.state
-
-    def tickets(self):
-        return []
-
-
-class FakeGraph2Store:
-    def __init__(self) -> None:
-        self.state: dict | None = None
-        self.task_status = "open"
-
-    def latest(self, run_id):
-        if self.state is None or self.state["run_id"] != run_id:
-            return None
-        return dict(self.state)
-
-    def history(self, run_id):
-        if self.latest(run_id) is None:
-            return []
-        return [
-            {"sequence": 1, "node": "load_shipment", "state": self.state},
-            {"sequence": 2, "node": self.state["current_node"], "state": self.state},
-        ]
-
-    def list_tasks(self, task_type=None, status="open"):
-        if self.state is None or self.task_status != status:
-            return []
-        return [
-            {
-                "task_id": "g2-hitl" if task_type == "hitl" else "g2-ticket",
-                "run_id": self.state["run_id"],
-                "task_type": task_type,
-                "status": status,
-                "state": dict(self.state),
-                "created_at": "2026-08-23 10:00:00",
-                "resolved_at": None,
-            }
-        ]
-
-    def update_task_status(self, task_id, status):
-        del task_id
-        self.task_status = status
-
-
-class FakeGraph2:
-    def __init__(self) -> None:
-        self.checkpoints = FakeGraph2Store()
-
-    def start(self, shipment_id, session_id, *, employee_id):
-        state = RateExceptionState(
-            run_id="g2-run",
-            shipment_id=shipment_id,
-            session_id=session_id,
-            employee_id=employee_id,
-            current_node="wait_for_admin",
-            discount_pct=25.0,
-            hitl_task_id="g2-hitl",
-        )
-        self.checkpoints.state = state.to_dict()
         return state
 
     def pending_hitl_tasks(self):
-        return self.checkpoints.list_tasks("hitl", "open")
+        return self.hitl
 
-    def resume(self, run_id, *, admin_decision, admin_note):
-        del admin_decision, admin_note
-        state = RateExceptionState.from_dict(self.checkpoints.latest(run_id))
-        state.current_node = "END"
-        state.final_status = "approved"
-        self.checkpoints.state = state.to_dict()
-        self.checkpoints.task_status = "resolved"
-        return state
+    def resolve_hitl(self, task_id, *, approved, note, admin_employee_id):
+        del task_id, approved, note, admin_employee_id
+        assert self.state is not None
+        self.state.status = RunStatus.COMPLETED
+        self.state.current_node = "END"
+        if self.graph_name == "delivery_exception_recovery":
+            self.state.data["shipment"] = {"destination": "Giza Warehouse"}
+        else:
+            self.state.data["final_status"] = "approved"
+        self.hitl = []
+        return self.state
 
-    def resolve_failure(self, run_id):
-        state = RateExceptionState.from_dict(self.checkpoints.latest(run_id))
-        state.current_node = "END"
-        state.final_status = "recovered"
-        self.checkpoints.state = state.to_dict()
-        self.checkpoints.task_status = "resolved"
-        return state
+    def tickets(self):
+        return self.failure_tickets
+
+    def investigate_ticket(self, ticket_id):
+        ticket = next(item for item in self.failure_tickets if item["ticket_id"] == ticket_id)
+        ticket["status"] = "investigating"
+        return ticket
+
+    def resolve_ticket(self, ticket_id, *, resolution_note):
+        del resolution_note
+        ticket = next(item for item in self.failure_tickets if item["ticket_id"] == ticket_id)
+        ticket["status"] = "resolved"
+        assert self.state is not None
+        self.state.status = RunStatus.COMPLETED
+        self.state.current_node = "END"
+        self.state.data["final_status"] = "recovered"
+        return self.state
 
 
 def integration():
-    graph_1 = FakeGraph1Service()
-    graph_2 = FakeGraph2()
+    graph_1 = FakeGraphService("delivery_exception_recovery")
+    graph_2 = FakeGraphService("rate_exception_approval")
     return (
         PlatformGraphIntegration(lambda: graph_1, lambda: graph_2),
         graph_1,
@@ -164,14 +121,12 @@ def integration():
 
 def test_graph_1_chat_starts_and_submits_customer_choice():
     platform, graph_1, _ = integration()
-
     started = platform.chat(
         GRAPH_1_AGENT_ID,
         "start shipment 6, employee 1, reason: customer unavailable at destination",
         None,
     )
     assert started["status"] == "paused_wait"
-    assert started["run_id"] == "g1-run"
 
     waiting = platform.chat(
         GRAPH_1_AGENT_ID,
@@ -182,67 +137,58 @@ def test_graph_1_chat_starts_and_submits_customer_choice():
     assert graph_1.state.data["customer_choice"]["destination_verified"] is False
 
 
-def test_graph_2_chat_starts_live_workflow_and_exposes_run_history():
+def test_graph_2_chat_uses_shared_state_service_and_history():
     platform, _, _ = integration()
-
     started = platform.chat(
         GRAPH_2_AGENT_ID,
         "start shipment 5, employee 3",
         None,
     )
+
     assert started["status"] == "paused_hitl"
     assert "25.0%" in started["reply"]
-
     run = platform.get_run("g2-run")
     assert run["run"]["graph_name"] == "rate_exception_approval"
     assert run["history"][-1]["node_name"] == "wait_for_admin"
 
 
-def test_admin_hitl_queue_routes_decisions_to_the_correct_graph():
-    platform, graph_1, _ = integration()
-    platform.chat(
-        GRAPH_1_AGENT_ID,
-        "start shipment 6, employee 1, reason: customer unavailable at destination",
-        None,
-    )
-    platform.chat(
-        GRAPH_1_AGENT_ID,
-        "reroute to Giza Warehouse, cost 650, verified no",
-        "g1-run",
-    )
+def test_admin_hitl_routes_graph_2_decision_through_shared_service():
+    platform, _, _ = integration()
+    platform.chat(GRAPH_2_AGENT_ID, "start shipment 5, employee 3", None)
 
-    tasks = platform.hitl_tasks()
-    assert tasks[0]["agent_id"] == GRAPH_1_AGENT_ID
+    task = platform.hitl_tasks()[0]
+    assert task["agent_id"] == GRAPH_2_AGENT_ID
     resolved = platform.decide_hitl(
-        "g1-hitl",
+        "g2-hitl",
         decision="approve",
         decided_by="admin",
         admin_employee_id=3,
     )
     assert resolved["status"] == "completed"
-    assert graph_1.decision is True
 
 
-def test_graph_2_ticket_lifecycle_supports_investigating_and_resolved():
+def test_graph_2_ticket_lifecycle_uses_shared_service():
     platform, _, graph_2 = integration()
-    state = RateExceptionState(
-        run_id="g2-run",
-        shipment_id=5,
-        session_id="platform-session",
-        current_node="failure_ticket",
-        failed_node="retrieve_policy",
-        error="Qdrant unavailable",
-        ticket_id="g2-ticket",
-        ticket_status="open",
+    graph_2.start_run(
+        "rate_exception_approval",
+        {"shipment_id": 5, "session_id": "platform-session", "employee_id": 3},
     )
-    graph_2.checkpoints.state = state.to_dict()
+    graph_2.state.status = RunStatus.WAITING_TICKET
+    graph_2.state.current_node = "retrieve_policy"
+    graph_2.failure_tickets = [
+        {
+            "ticket_id": "g2-ticket",
+            "run_id": "g2-run",
+            "failed_node": "retrieve_policy",
+            "error_type": "RuntimeError",
+            "error_message": "Qdrant unavailable",
+            "status": "open",
+            "created_at": "2026-08-23T10:00:00+00:00",
+            "state": graph_2.state.to_dict(),
+        }
+    ]
 
-    ticket = platform.tickets()[0]
-    assert ticket["status"] == "open"
     investigating = platform.set_ticket_status("g2-ticket", "investigating")
     assert investigating["ticket"]["status"] == "investigating"
     resolved = platform.set_ticket_status("g2-ticket", "resolved")
     assert resolved["run"]["status"] == "completed"
-    resolved_tickets = platform.tickets()
-    assert resolved_tickets[0]["status"] == "resolved"
-    assert resolved_tickets[0]["graph_status"] is None

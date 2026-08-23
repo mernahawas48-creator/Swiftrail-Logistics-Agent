@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
-from mcp_server.runtime_tool_manager import RuntimeToolManager
 from mcp_server.agent_registry import AgentRegistry
-from state_graph.graph_2.graph import RateExceptionGraph
+from mcp_server.runtime_tool_manager import RuntimeToolManager
+from state_graph.core.types import TicketStatus
+from state_graph.graph_2.live import build_live_service
 
 
 class AdminService:
@@ -21,12 +22,12 @@ class AdminService:
         tool_manager: RuntimeToolManager,
         agents: AgentRegistry,
         rag: Any | None = None,
-        graph_factory: Callable[[], RateExceptionGraph] | None = None,
+        graph_factory: Callable[[], Any] | None = None,
     ):
         self.tool_manager = tool_manager
         self.agents = agents
         self.rag = rag
-        self.graph_factory = graph_factory or RateExceptionGraph
+        self.graph_factory = graph_factory or build_live_service
 
     def agents_with_tools(self) -> list[dict[str, Any]]:
         return [
@@ -85,27 +86,32 @@ class AdminService:
         return self._require_rag().reindex()
 
     def pending_hitl_tasks(self) -> list[dict[str, Any]]:
-        return self._graph().checkpoints.list_tasks("hitl", "open")
+        return self._graph().pending_hitl_tasks()
 
     def pending_failure_tickets(self) -> list[dict[str, Any]]:
-        return self._graph().checkpoints.list_tasks("failure", "open")
+        return self._graph().tickets(TicketStatus.OPEN)
 
     def resolve_hitl(
         self,
-        run_id: str,
+        task_id: str,
         decision: str,
         note: str | None = None,
+        admin_employee_id: int = 3,
     ):
-        return self._graph().resume(
-            run_id,
-            admin_decision=decision,
-            admin_note=note,
+        return self._graph().resolve_hitl(
+            task_id,
+            approved=decision == "approve",
+            note=note or "Resolved through the admin service.",
+            admin_employee_id=admin_employee_id,
         )
 
-    def resolve_failure(self, run_id: str):
-        return self._graph().resolve_failure(run_id)
+    def investigate_failure(self, ticket_id: str):
+        return self._graph().investigate_ticket(ticket_id)
 
-    def _graph(self) -> RateExceptionGraph:
+    def resolve_failure(self, ticket_id: str, note: str):
+        return self._graph().resolve_ticket(ticket_id, resolution_note=note)
+
+    def _graph(self):
         return self.graph_factory()
 
     def _require_agent(self, agent_id: str) -> None:

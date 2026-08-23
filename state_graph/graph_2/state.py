@@ -4,6 +4,28 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
+@dataclass(frozen=True, slots=True)
+class RateExceptionRequest:
+    """Validated input stored inside the shared graph-state envelope."""
+
+    shipment_id: int
+    session_id: str
+    employee_id: int = 3
+
+    @classmethod
+    def from_input(cls, value: dict[str, Any]) -> RateExceptionRequest:
+        shipment_id = int(value.get("shipment_id", 0))
+        employee_id = int(value.get("employee_id", 0))
+        session_id = str(value.get("session_id", "")).strip()
+        if shipment_id < 1:
+            raise ValueError("shipment_id must be positive.")
+        if employee_id < 1:
+            raise ValueError("employee_id must be positive.")
+        if len(session_id) < 8:
+            raise ValueError("session_id must contain at least 8 characters.")
+        return cls(shipment_id, session_id, employee_id)
+
+
 @dataclass
 class RateExceptionState:
     """Durable state for a rate-exception approval workflow."""
