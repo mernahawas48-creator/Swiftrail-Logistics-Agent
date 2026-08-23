@@ -61,6 +61,16 @@ branches between delegated auto-approval and persisted finance-manager HITL.
 Policy retrieval and constrained decision planning are injected node services,
 while all operational reads and writes pass through the existing MCP server.
 
+### LLM additions
+
+1. **RAG:** `retrieve_policy` retrieves only the rate-exception policy, then
+   calls Mistral to produce a grounded authority analysis. The result must cite
+   retrieved chunk IDs, and its numeric limit must exist in the evidence.
+2. **Constrained ReAct:** `classify_authority` calls Mistral with the shipment,
+   exception, retrieved evidence, and grounded analysis. Its action is limited
+   to the registered `approve_rate_exception` MCP operation, and a server-side
+   guard prevents the model from bypassing the authority threshold.
+
 The earlier `RateExceptionGraph` and graph-specific SQLite store remain only as
 legacy compatibility modules; the platform and production builder no longer
 use them. Unit tests exercise Graph 2 through the shared SQLite test store.

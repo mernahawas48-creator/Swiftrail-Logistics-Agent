@@ -10,6 +10,7 @@ from state_graph.core.mysql_store import MySQLCheckpointStore
 from state_graph.core.registry import GraphRegistry
 from state_graph.core.service import GraphService
 from state_graph.graph_2.definition import build_rate_exception_graph
+from state_graph.graph_2.llm import MistralPolicyAnalyst
 from state_graph.graph_2.react import ConstrainedReActPlanner
 
 
@@ -121,9 +122,7 @@ def build_live_service(
                 permission_checker=permission_checker,
             ),
             "policy_search": HybridSearch(),
-            # The next isolated issue injects Mistral here. Keeping the
-            # deterministic fallback during this migration avoids mixing the
-            # storage/engine change with provider behavior.
+            "policy_analyst": MistralPolicyAnalyst(),
             "decision_planner": ConstrainedReActPlanner(),
         },
     )

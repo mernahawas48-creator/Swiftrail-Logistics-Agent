@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -8,7 +9,8 @@ from state_graph.core.sqlite_store import SQLiteCheckpointStore
 from state_graph.core.state import SharedGraphState
 from state_graph.core.types import HITLStatus, RunStatus, TicketStatus
 from state_graph.graph_2.definition import GRAPH_NAME, build_rate_exception_graph
-from state_graph.graph_2.react import ReActDecision
+from state_graph.graph_2.llm import MistralPolicyAnalyst, PolicyAnalysis
+from state_graph.graph_2.react import ConstrainedReActPlanner, ReActDecision
 
 
 class FakeRateTools:
@@ -57,7 +59,35 @@ class FakePlanner:
         )
 
 
-def service(tmp_path: Path, *, discount=25.0, search=None):
+class FakePolicyAnalyst:
+    def analyze(self, *, evidence):
+        return PolicyAnalysis(
+            summary="Discounts above 15 percent require finance review.",
+            delegated_limit_pct=15.0,
+            requires_human_above_limit=True,
+            citations=(evidence[0]["chunk_id"],),
+        )
+
+
+class SequenceGenerator:
+    def __init__(self, outputs):
+        self.outputs = list(outputs)
+        self.calls = 0
+
+    def generate(self, prompt):
+        del prompt
+        self.calls += 1
+        return self.outputs.pop(0)
+
+
+def service(
+    tmp_path: Path,
+    *,
+    discount=25.0,
+    search=None,
+    policy_analyst=None,
+    decision_planner=None,
+):
     registry = GraphRegistry()
     registry.register(build_rate_exception_graph())
     store = SQLiteCheckpointStore(tmp_path / "shared.db")
@@ -68,7 +98,8 @@ def service(tmp_path: Path, *, discount=25.0, search=None):
         services={
             "rate_tools": tools,
             "policy_search": search or FakeSearch(),
-            "decision_planner": FakePlanner(),
+            "policy_analyst": policy_analyst or FakePolicyAnalyst(),
+            "decision_planner": decision_planner or FakePlanner(),
         },
     )
     return GraphService(engine), tools, store
@@ -127,6 +158,40 @@ def test_graph_2_auto_approval_completes_without_hitl(tmp_path):
     assert state.data["final_status"] == "auto_approved"
     assert graph_service.pending_hitl_tasks() == []
     assert tools.applied[0]["approve"] is None
+
+
+def test_graph_2_nodes_execute_both_mistral_additions(tmp_path):
+    generator = SequenceGenerator(
+        [
+            json.dumps(
+                {
+                    "summary": "Finance review is required above delegated authority.",
+                    "delegated_limit_pct": 15,
+                    "requires_human_above_limit": True,
+                    "citations": ["chunk-1"],
+                }
+            ),
+            json.dumps(
+                {
+                    "decision": "human_review",
+                    "rationale": "The 25 percent discount exceeds delegated authority.",
+                    "tool": "approve_rate_exception",
+                }
+            ),
+        ]
+    )
+    graph_service, _, _ = service(
+        tmp_path,
+        policy_analyst=MistralPolicyAnalyst(generator),
+        decision_planner=ConstrainedReActPlanner(generator),
+    )
+
+    state = start(graph_service, run_id="graph-2-two-llm-additions")
+
+    assert generator.calls == 2
+    assert state.status is RunStatus.WAITING_HITL
+    assert state.data["policy_analysis"]["citations"] == ["chunk-1"]
+    assert state.data["planner_decision"]["tool"] == "approve_rate_exception"
 
 
 def test_graph_2_failure_ticket_resumes_exact_failed_node(tmp_path):
