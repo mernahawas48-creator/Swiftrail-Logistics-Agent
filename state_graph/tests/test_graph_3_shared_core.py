@@ -7,6 +7,8 @@ from state_graph.core.sqlite_store import SQLiteCheckpointStore
 from state_graph.core.state import SharedGraphState
 from state_graph.core.types import RunStatus, TicketStatus
 from state_graph.graph_3.definition import GRAPH_NAME, build_credit_hold_graph
+from state_graph.graph_3.llm import LATSRemediationPlan
+from state_graph.graph_3.react import CreditHoldReActDecision
 
 
 class FakeCreditTools:
@@ -35,12 +37,69 @@ class FakeCreditTools:
         return {"hold_id": kwargs["hold_id"], "status": "released"}
 
 
-def service(tmp_path: Path, **tool_options):
+class FakeRemediationPlanner:
+    def __init__(self):
+        self.calls = 0
+
+    def plan(self, *, customer_claim, **kwargs):
+        del kwargs
+        self.calls += 1
+        action = "dispute_review" if customer_claim else "payment_confirmation"
+        return LATSRemediationPlan(
+            action=action,
+            narrative=f"Grounded plan. ACTION: {action}",
+            score=0.95,
+            iterations=1,
+            search_tree=(),
+        )
+
+
+class FakeReleasePlanner:
+    def __init__(self):
+        self.calls = 0
+
+    def decide(self, *, hold, **kwargs):
+        del kwargs
+        self.calls += 1
+        decision = "human_review" if hold["severity"] == "severe" else "release"
+        return CreditHoldReActDecision(
+            decision=decision,
+            rationale="Grounded authority decision for the active credit hold.",
+            tool="release_credit_hold",
+        )
+
+
+class RecoveringRemediationPlanner(FakeRemediationPlanner):
+    def __init__(self):
+        super().__init__()
+        self.fail = True
+
+    def plan(self, **kwargs):
+        if self.fail:
+            raise RuntimeError("Mistral LATS output was not grounded")
+        return super().plan(**kwargs)
+
+
+def service(
+    tmp_path: Path,
+    *,
+    remediation_planner=None,
+    release_planner=None,
+    **tool_options,
+):
     registry = GraphRegistry()
     registry.register(build_credit_hold_graph())
     store = SQLiteCheckpointStore(tmp_path / "shared.db")
     tools = FakeCreditTools(**tool_options)
-    engine = GraphEngine(registry, store, services={"credit_tools": tools})
+    engine = GraphEngine(
+        registry,
+        store,
+        services={
+            "credit_tools": tools,
+            "remediation_planner": remediation_planner or FakeRemediationPlanner(),
+            "release_planner": release_planner or FakeReleasePlanner(),
+        },
+    )
     return GraphService(engine), tools, store
 
 
@@ -145,3 +204,53 @@ def test_graph_3_completes_when_customer_has_no_active_hold(tmp_path):
     assert completed.status is RunStatus.COMPLETED
     assert completed.data["final_status"] == "no_active_hold"
     assert tools.releases == []
+
+
+def test_graph_3_executes_lats_and_constrained_react_nodes(tmp_path):
+    remediation = FakeRemediationPlanner()
+    release = FakeReleasePlanner()
+    graph_service, _, _ = service(
+        tmp_path,
+        severity="minor",
+        remediation_planner=remediation,
+        release_planner=release,
+    )
+    waiting = start(graph_service, claim="invoice is incorrect")
+    completed = graph_service.submit_external_input(
+        waiting.run_id,
+        {"evidence": "Invoice 5 duplicates shipment 2 and includes a receipt."},
+    )
+
+    assert completed.status is RunStatus.COMPLETED
+    assert remediation.calls == 1
+    assert release.calls == 1
+    assert completed.data["lats_plan"]["action"] == "dispute_review"
+    assert completed.data["react_decision"]["tool"] == "release_credit_hold"
+
+
+def test_graph_3_lats_failure_tickets_and_resumes_exact_llm_node(tmp_path):
+    remediation = RecoveringRemediationPlanner()
+    graph_service, _, _ = service(
+        tmp_path,
+        severity="minor",
+        remediation_planner=remediation,
+    )
+    failed = start(graph_service)
+    ticket = graph_service.tickets(TicketStatus.OPEN)[0]
+
+    assert failed.status is RunStatus.WAITING_TICKET
+    assert failed.failed_node == "build_remediation_plan"
+    graph_service.investigate_ticket(ticket["ticket_id"])
+    remediation.fail = False
+    recovered = graph_service.resolve_ticket(
+        ticket["ticket_id"],
+        resolution_note="The grounded Mistral planner response was restored.",
+    )
+
+    assert recovered.status is RunStatus.WAITING_EXTERNAL
+    assert recovered.data["lats_plan"]["action"] == "payment_confirmation"
+    assert any(
+        item["event"] == "ticket_resolved"
+        and item["target"] == "build_remediation_plan"
+        for item in recovered.transition_history
+    )

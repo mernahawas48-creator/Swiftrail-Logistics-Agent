@@ -16,6 +16,7 @@ def build_credit_hold_graph() -> GraphDefinition:
                 "build_remediation_plan": nodes.build_remediation_plan,
                 "prepare_customer_wait": nodes.prepare_customer_wait,
                 "process_customer_input": nodes.process_customer_input,
+                "classify_release_action": nodes.classify_release_action,
                 "apply_admin_decision": nodes.apply_admin_decision,
                 "execute_remediation_action": nodes.execute_remediation_action,
                 "complete": nodes.complete,
@@ -43,10 +44,12 @@ def build_credit_hold_graph() -> GraphDefinition:
             "process_customer_input": frozenset(
                 {
                     "prepare_customer_wait",
-                    "wait_for_finance_admin",
-                    "execute_remediation_action",
+                    "classify_release_action",
                     "complete",
                 }
+            ),
+            "classify_release_action": frozenset(
+                {"wait_for_finance_admin", "execute_remediation_action"}
             ),
             "wait_for_finance_admin": frozenset({"apply_admin_decision"}),
             "apply_admin_decision": frozenset(

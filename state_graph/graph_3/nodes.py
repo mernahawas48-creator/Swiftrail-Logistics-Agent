@@ -34,10 +34,17 @@ def load_account_state(state: SharedGraphState, context: NodeContext) -> NodeRes
 
 
 def build_remediation_plan(state: SharedGraphState, context: NodeContext) -> NodeResult:
-    del context
     request = _request(state)
-    plan = "dispute_review" if request.customer_claim else "payment_confirmation"
-    return NodeResult("prepare_customer_wait", {"plan": plan})
+    plan = context.require("remediation_planner").plan(
+        invoices=state.data["invoices"],
+        hold=state.data["credit_hold"],
+        overdue_amount=float(state.data["overdue_amount"]),
+        customer_claim=request.customer_claim,
+    )
+    return NodeResult(
+        "prepare_customer_wait",
+        {"plan": plan.action, "lats_plan": plan.to_dict()},
+    )
 
 
 def prepare_customer_wait(state: SharedGraphState, context: NodeContext) -> NodeResult:
@@ -76,12 +83,35 @@ def process_customer_input(state: SharedGraphState, context: NodeContext) -> Nod
                 {"payment_confirmed": amount, "final_status": "partial_payment_hold"},
             )
         updates = {"payment_confirmed": amount}
-    next_node = (
-        "wait_for_finance_admin"
-        if state.data["credit_hold"]["severity"] == "severe"
-        else "execute_remediation_action"
+    return NodeResult("classify_release_action", updates)
+
+
+def classify_release_action(
+    state: SharedGraphState, context: NodeContext
+) -> NodeResult:
+    lats_plan = state.data["lats_plan"]
+    decision = context.require("release_planner").decide(
+        hold=state.data["credit_hold"],
+        overdue_amount=float(state.data["overdue_amount"]),
+        plan={
+            key: lats_plan[key]
+            for key in ("action", "narrative", "score", "iterations")
+        },
+        customer_evidence=state.data.get("customer_evidence"),
+        payment_confirmed=state.data.get("payment_confirmed"),
     )
-    return NodeResult(next_node, updates)
+    requires_human = decision.decision == "human_review"
+    return NodeResult(
+        "wait_for_finance_admin" if requires_human else "execute_remediation_action",
+        {
+            "requires_human": requires_human,
+            "react_decision": {
+                "decision": decision.decision,
+                "rationale": decision.rationale,
+                "tool": decision.tool,
+            },
+        },
+    )
 
 
 def admin_reason(state: SharedGraphState) -> str:
@@ -96,6 +126,8 @@ def admin_request(state: SharedGraphState) -> dict[str, Any]:
         "credit_hold": state.data["credit_hold"],
         "overdue_amount": state.data["overdue_amount"],
         "plan": state.data["plan"],
+        "lats_plan": state.data["lats_plan"],
+        "react_decision": state.data["react_decision"],
     }
 
 
