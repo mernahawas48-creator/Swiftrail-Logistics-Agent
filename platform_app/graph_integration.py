@@ -6,12 +6,15 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
+from state_graph.core.exceptions import RunNotFoundError
 from state_graph.core.types import RunStatus
 from state_graph.graph_1.graph import GRAPH_NAME as GRAPH_1_NAME
 from state_graph.graph_2.definition import GRAPH_NAME as GRAPH_2_NAME
+from state_graph.graph_3.definition import GRAPH_NAME as GRAPH_3_NAME
 
 GRAPH_1_AGENT_ID = "graph1_delivery_exception"
 GRAPH_2_AGENT_ID = "graph2_rate_exception"
+GRAPH_3_AGENT_ID = "graph3_credit_hold_remediation"
 
 _GRAPH_1_START = re.compile(
     r"^start\s+shipment\s+(?P<shipment>\d+)"
@@ -30,6 +33,12 @@ _GRAPH_2_START = re.compile(
     r"(?:\s*,?\s*employee\s+(?P<employee>\d+))?$",
     re.IGNORECASE,
 )
+_GRAPH_3_START = re.compile(
+    r"^start\s+customer\s+(?P<customer>\d+)"
+    r"(?:\s*,?\s*employee\s+(?P<employee>\d+))?"
+    r"(?:\s*,?\s*claim:\s*(?P<claim>.+))?$",
+    re.IGNORECASE,
+)
 
 
 def _default_graph_1_service():
@@ -40,6 +49,12 @@ def _default_graph_1_service():
 
 def _default_graph_2_service():
     from state_graph.graph_2.live import build_live_service
+
+    return build_live_service()
+
+
+def _default_graph_3_service():
+    from state_graph.graph_3.live import build_live_service
 
     return build_live_service()
 
@@ -76,17 +91,20 @@ def _graph_1_status(status: RunStatus) -> str:
 
 
 class PlatformGraphIntegration:
-    """Connect Graphs 1 and 2 to the platform without duplicating graph logic."""
+    """Connect all shared-core state graphs without duplicating graph logic."""
 
     def __init__(
         self,
         graph_1_factory: Callable[[], Any] = _default_graph_1_service,
         graph_2_factory: Callable[[], Any] = _default_graph_2_service,
+        graph_3_factory: Callable[[], Any] = _default_graph_3_service,
     ) -> None:
         self._graph_1_factory = graph_1_factory
         self._graph_2_factory = graph_2_factory
+        self._graph_3_factory = graph_3_factory
         self._graph_1: Any | None = None
         self._graph_2: Any | None = None
+        self._graph_3: Any | None = None
 
     @property
     def graph_1(self):
@@ -100,11 +118,19 @@ class PlatformGraphIntegration:
             self._graph_2 = self._graph_2_factory()
         return self._graph_2
 
+    @property
+    def graph_3(self):
+        if self._graph_3 is None:
+            self._graph_3 = self._graph_3_factory()
+        return self._graph_3
+
     def chat(self, agent_id: str, message: str, run_id: str | None) -> dict[str, Any]:
         if agent_id == GRAPH_1_AGENT_ID:
             return self._chat_graph_1(message, run_id)
         if agent_id == GRAPH_2_AGENT_ID:
             return self._chat_graph_2(message, run_id)
+        if agent_id == GRAPH_3_AGENT_ID:
+            return self._chat_graph_3(message, run_id)
         raise KeyError(agent_id)
 
     def _chat_graph_1(self, message: str, run_id: str | None) -> dict[str, Any]:
@@ -217,12 +243,64 @@ class PlatformGraphIntegration:
             "current_node": state.current_node,
         }
 
+    def _chat_graph_3(self, message: str, run_id: str | None) -> dict[str, Any]:
+        if run_id is None:
+            match = _GRAPH_3_START.fullmatch(message.strip())
+            if match is None:
+                return {
+                    "reply": (
+                        "Start Graph 3 with: start customer 3, employee 3, "
+                        "claim: invoice amount is disputed"
+                    )
+                }
+            state = self.graph_3.start_run(
+                GRAPH_3_NAME,
+                {
+                    "customer_id": int(match.group("customer")),
+                    "employee_id": int(match.group("employee") or 3),
+                    "session_id": f"platform-g3-{uuid.uuid4().hex[:12]}",
+                    "customer_claim": match.group("claim"),
+                },
+            )
+        else:
+            state = self.graph_3.get_run(run_id)
+            if state.status is RunStatus.WAITING_EXTERNAL:
+                if state.data.get("waiting_on") == "dispute_evidence":
+                    payload = {"evidence": message.strip()}
+                else:
+                    amount_match = re.search(r"\d+(?:\.\d+)?", message.replace(",", ""))
+                    if amount_match is None:
+                        return self._graph_3_chat_response(state)
+                    payload = {"amount": float(amount_match.group())}
+                state = self.graph_3.submit_external_input(run_id, payload)
+        return self._graph_3_chat_response(state)
+
+    @staticmethod
+    def _graph_3_chat_response(state: Any) -> dict[str, Any]:
+        status = _graph_1_status(state.status)
+        if status == "paused_wait":
+            reply = f"Waiting for customer {state.data.get('waiting_on')}."
+        elif status == "paused_hitl":
+            reply = "The severe credit hold is waiting for finance approval."
+        elif status == "ticketed":
+            reply = "Graph 3 failed safely and opened a ticket for an admin."
+        elif status == "completed":
+            reply = f"Credit-hold workflow completed: {state.data.get('final_status')}."
+        else:
+            reply = f"Graph 3 is running at {state.current_node}."
+        return {
+            "run_id": state.run_id,
+            "reply": reply,
+            "status": status,
+            "current_node": state.current_node,
+        }
+
     def get_run(self, run_id: str) -> dict[str, Any] | None:
-        try:
-            state = self.graph_1.get_run(run_id)
-        except Exception:
-            state = None
-        if state is not None:
+        for service in (self.graph_1, self.graph_2, self.graph_3):
+            try:
+                state = service.get_run(run_id)
+            except RunNotFoundError:
+                continue
             history = [
                 {"sequence": index, "node_name": item["target"]}
                 for index, item in enumerate(state.transition_history, start=1)
@@ -237,25 +315,24 @@ class PlatformGraphIntegration:
                 "history": history,
                 "state": state.to_dict(),
             }
+        return None
 
-        try:
-            state = self.graph_2.get_run(run_id)
-        except Exception:
-            return None
-        history = [
-            {"sequence": index, "node_name": item["target"]}
-            for index, item in enumerate(state.transition_history, start=1)
-        ]
-        return {
-            "run": {
-                "run_id": state.run_id,
-                "graph_name": state.graph_name,
-                "status": _graph_1_status(state.status),
-                "current_node": state.current_node,
-            },
-            "history": history,
-            "state": state.to_dict(),
-        }
+    def list_runs(self, graph_name: str | None = None) -> list[dict[str, Any]]:
+        runs: list[dict[str, Any]] = []
+        for service in (self.graph_1, self.graph_2, self.graph_3):
+            if graph_name is not None and service.graph_name != graph_name:
+                continue
+            runs.extend(
+                {
+                    "run_id": state.run_id,
+                    "graph_name": state.graph_name,
+                    "status": _graph_1_status(state.status),
+                    "current_node": state.current_node,
+                    "updated_at": state.updated_at,
+                }
+                for state in service.list_runs()
+            )
+        return sorted(runs, key=lambda item: item["updated_at"], reverse=True)
 
     def hitl_tasks(self) -> list[dict[str, Any]]:
         tasks: list[dict[str, Any]] = []
@@ -274,6 +351,15 @@ class PlatformGraphIntegration:
                     **task,
                     "created_at": _epoch(task.get("created_at")),
                     "agent_id": GRAPH_2_AGENT_ID,
+                    "graph_status": "paused_hitl",
+                }
+            )
+        for task in self.graph_3.pending_hitl_tasks():
+            tasks.append(
+                {
+                    **task,
+                    "created_at": _epoch(task.get("created_at")),
+                    "agent_id": GRAPH_3_AGENT_ID,
                     "graph_status": "paused_hitl",
                 }
             )
@@ -300,16 +386,27 @@ class PlatformGraphIntegration:
         graph_2_tasks = {
             task["task_id"]: task for task in self.graph_2.pending_hitl_tasks()
         }
-        task = graph_2_tasks.get(task_id)
-        if task is None:
+        if task_id in graph_2_tasks:
+            state = self.graph_2.resolve_hitl(
+                task_id,
+                approved=decision == "approve",
+                note=f"Platform decision by {decided_by}.",
+                admin_employee_id=admin_employee_id,
+            )
+            return self._graph_2_chat_response(state)
+
+        graph_3_tasks = {
+            task["task_id"]: task for task in self.graph_3.pending_hitl_tasks()
+        }
+        if task_id not in graph_3_tasks:
             return None
-        state = self.graph_2.resolve_hitl(
+        state = self.graph_3.resolve_hitl(
             task_id,
             approved=decision == "approve",
             note=f"Platform decision by {decided_by}.",
             admin_employee_id=admin_employee_id,
         )
-        return self._graph_2_chat_response(state)
+        return self._graph_3_chat_response(state)
 
     def tickets(self) -> list[dict[str, Any]]:
         tickets: list[dict[str, Any]] = []
@@ -329,6 +426,18 @@ class PlatformGraphIntegration:
                     "node_name": ticket["failed_node"],
                     "created_at": _epoch(ticket.get("created_at")),
                     "agent_id": GRAPH_2_AGENT_ID,
+                    "graph_status": (
+                        "ticketed" if ticket["status"] != "resolved" else None
+                    ),
+                }
+            )
+        for ticket in self.graph_3.tickets():
+            tickets.append(
+                {
+                    **ticket,
+                    "node_name": ticket["failed_node"],
+                    "created_at": _epoch(ticket.get("created_at")),
+                    "agent_id": GRAPH_3_AGENT_ID,
                     "graph_status": (
                         "ticketed" if ticket["status"] != "resolved" else None
                     ),
@@ -357,21 +466,42 @@ class PlatformGraphIntegration:
             ticket["ticket_id"]: ticket for ticket in self.graph_2.tickets()
         }
         ticket = graph_2_tickets.get(ticket_id)
+        if ticket is not None:
+            if status == "investigating":
+                updated = self.graph_2.investigate_ticket(ticket_id)
+                return {
+                    "ticket": updated,
+                    "run": self.get_run(ticket["run_id"])["run"],
+                }
+            if status == "resolved":
+                state = self.graph_2.resolve_ticket(
+                    ticket_id,
+                    resolution_note="Resolved through the platform admin dashboard.",
+                )
+                return {
+                    "ticket": {"ticket_id": ticket_id, "status": "resolved"},
+                    "run": self._graph_2_chat_response(state),
+                }
+
+        graph_3_tickets = {
+            ticket["ticket_id"]: ticket for ticket in self.graph_3.tickets()
+        }
+        ticket = graph_3_tickets.get(ticket_id)
         if ticket is None:
             return None
         if status == "investigating":
-            updated = self.graph_2.investigate_ticket(ticket_id)
+            updated = self.graph_3.investigate_ticket(ticket_id)
             return {
                 "ticket": updated,
                 "run": self.get_run(ticket["run_id"])["run"],
             }
         if status == "resolved":
-            state = self.graph_2.resolve_ticket(
+            state = self.graph_3.resolve_ticket(
                 ticket_id,
                 resolution_note="Resolved through the platform admin dashboard.",
             )
             return {
                 "ticket": {"ticket_id": ticket_id, "status": "resolved"},
-                "run": self._graph_2_chat_response(state),
+                "run": self._graph_3_chat_response(state),
             }
         raise ValueError("Ticket status must be investigating or resolved.")

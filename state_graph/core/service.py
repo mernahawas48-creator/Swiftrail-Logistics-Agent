@@ -35,6 +35,9 @@ class GraphService:
             raise RunNotFoundError(f"Run was not found for {self.graph_name}: {run_id}")
         return state
 
+    def list_runs(self) -> list[SharedGraphState]:
+        return self.engine.store.list_runs(self.graph_name)
+
     def submit_external_input(
         self, run_id: str, payload: dict[str, Any]
     ) -> SharedGraphState:

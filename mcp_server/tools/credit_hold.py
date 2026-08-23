@@ -68,26 +68,25 @@ async def release_credit_hold(
                     {"current_role": identity.role},
                 )
 
-            result = await ctx.elicit(
-                message=(
-                    f"Credit hold {validated.hold_id} on customer_id={hold['customer_id']} "
-                    f"is SEVERE (reason: {hold['reason']}). Releasing it may let "
-                    "shipments move while the customer remains materially overdue. "
-                    "Confirm or decline the release."
-                ),
-                schema=CreditHoldReleaseDecision,
-            )
-            if (
-                result.action != "accept"
-                or result.data is None
-                or not result.data.confirm_release
-            ):
+            decision = validated.decision
+            elicitation_action = "pre_collected"
+            if decision is None:
+                result = await ctx.elicit(
+                    message=(
+                        f"Credit hold {validated.hold_id} on customer_id={hold['customer_id']} "
+                        f"is SEVERE (reason: {hold['reason']}). Confirm or decline release."
+                    ),
+                    schema=CreditHoldReleaseDecision,
+                )
+                elicitation_action = str(result.action)
+                decision = result.data if result.action == "accept" else None
+            if decision is None or not decision.confirm_release:
                 return fail(
                     "HUMAN_CONFIRMATION_REQUIRED",
                     "The severe credit hold was not released because confirmation was absent.",
-                    {"elicitation_action": str(result.action)},
+                    {"elicitation_action": elicitation_action},
                 )
-            authorization_note = result.data.authorization_note
+            authorization_note = decision.authorization_note
 
         allowed_roles = (
             {"finance_manager"}

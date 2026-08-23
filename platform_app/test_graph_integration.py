@@ -3,6 +3,7 @@ from __future__ import annotations
 from platform_app.graph_integration import (
     GRAPH_1_AGENT_ID,
     GRAPH_2_AGENT_ID,
+    GRAPH_3_AGENT_ID,
     PlatformGraphIntegration,
 )
 from state_graph.core.exceptions import RunNotFoundError
@@ -24,11 +25,20 @@ class FakeGraphService:
             current_node = "wait_for_customer"
             status = RunStatus.WAITING_EXTERNAL
             run_id = "g1-run"
-        else:
+        elif graph_name == "rate_exception_approval":
             data = {"discount_pct": 25.0, "final_status": None}
             current_node = "wait_for_admin"
             status = RunStatus.WAITING_HITL
             run_id = "g2-run"
+        else:
+            data = {
+                "waiting_on": "dispute_evidence",
+                "credit_hold": {"id": 3, "severity": "severe"},
+                "final_status": None,
+            }
+            current_node = "wait_for_customer"
+            status = RunStatus.WAITING_EXTERNAL
+            run_id = "g3-run"
         self.state = SharedGraphState(
             run_id=run_id,
             graph_name=graph_name,
@@ -58,8 +68,26 @@ class FakeGraphService:
             raise RunNotFoundError(run_id)
         return self.state
 
+    def list_runs(self):
+        return [self.state] if self.state is not None else []
+
     def submit_external_input(self, run_id, payload):
         state = self.get_run(run_id)
+        if self.graph_name == "graph3_credit_hold_remediation":
+            state.data["customer_evidence"] = payload["evidence"]
+            state.status = RunStatus.WAITING_HITL
+            state.current_node = "wait_for_finance_admin"
+            self.hitl = [
+                {
+                    "task_id": "g3-hitl",
+                    "run_id": run_id,
+                    "status": "pending",
+                    "reason": "Severe hold requires finance approval.",
+                    "created_at": "2026-08-23T10:00:00+00:00",
+                    "state": state.to_dict(),
+                }
+            ]
+            return state
         state.data["customer_choice"] = payload
         state.status = RunStatus.WAITING_HITL
         state.current_node = "wait_for_admin"
@@ -85,6 +113,8 @@ class FakeGraphService:
         self.state.current_node = "END"
         if self.graph_name == "delivery_exception_recovery":
             self.state.data["shipment"] = {"destination": "Giza Warehouse"}
+        elif self.graph_name == "graph3_credit_hold_remediation":
+            self.state.data["final_status"] = "released"
         else:
             self.state.data["final_status"] = "approved"
         self.hitl = []
@@ -112,15 +142,21 @@ class FakeGraphService:
 def integration():
     graph_1 = FakeGraphService("delivery_exception_recovery")
     graph_2 = FakeGraphService("rate_exception_approval")
+    graph_3 = FakeGraphService("graph3_credit_hold_remediation")
     return (
-        PlatformGraphIntegration(lambda: graph_1, lambda: graph_2),
+        PlatformGraphIntegration(
+            lambda: graph_1,
+            lambda: graph_2,
+            lambda: graph_3,
+        ),
         graph_1,
         graph_2,
+        graph_3,
     )
 
 
 def test_graph_1_chat_starts_and_submits_customer_choice():
-    platform, graph_1, _ = integration()
+    platform, graph_1, _, _ = integration()
     started = platform.chat(
         GRAPH_1_AGENT_ID,
         "start shipment 6, employee 1, reason: customer unavailable at destination",
@@ -138,7 +174,7 @@ def test_graph_1_chat_starts_and_submits_customer_choice():
 
 
 def test_graph_2_chat_uses_shared_state_service_and_history():
-    platform, _, _ = integration()
+    platform, _, _, _ = integration()
     started = platform.chat(
         GRAPH_2_AGENT_ID,
         "start shipment 5, employee 3",
@@ -153,7 +189,7 @@ def test_graph_2_chat_uses_shared_state_service_and_history():
 
 
 def test_admin_hitl_routes_graph_2_decision_through_shared_service():
-    platform, _, _ = integration()
+    platform, _, _, _ = integration()
     platform.chat(GRAPH_2_AGENT_ID, "start shipment 5, employee 3", None)
 
     task = platform.hitl_tasks()[0]
@@ -168,7 +204,7 @@ def test_admin_hitl_routes_graph_2_decision_through_shared_service():
 
 
 def test_graph_2_ticket_lifecycle_uses_shared_service():
-    platform, _, graph_2 = integration()
+    platform, _, graph_2, _ = integration()
     graph_2.start_run(
         "rate_exception_approval",
         {"shipment_id": 5, "session_id": "platform-session", "employee_id": 3},
@@ -192,3 +228,32 @@ def test_graph_2_ticket_lifecycle_uses_shared_service():
     assert investigating["ticket"]["status"] == "investigating"
     resolved = platform.set_ticket_status("g2-ticket", "resolved")
     assert resolved["run"]["status"] == "completed"
+
+
+def test_graph_3_chat_and_hitl_use_shared_platform_integration():
+    platform, _, _, graph_3 = integration()
+    started = platform.chat(
+        GRAPH_3_AGENT_ID,
+        "start customer 3, employee 3, claim: invoice amount is incorrect",
+        None,
+    )
+    assert started["status"] == "paused_wait"
+
+    paused = platform.chat(
+        GRAPH_3_AGENT_ID,
+        "Invoice 5 duplicates shipment 2 and includes the attached receipt.",
+        "g3-run",
+    )
+    assert paused["status"] == "paused_hitl"
+    assert graph_3.state.data["customer_evidence"].startswith("Invoice 5")
+
+    task = next(item for item in platform.hitl_tasks() if item["agent_id"] == GRAPH_3_AGENT_ID)
+    completed = platform.decide_hitl(
+        task["task_id"],
+        decision="approve",
+        decided_by="finance admin",
+        admin_employee_id=3,
+    )
+    assert completed["status"] == "completed"
+    assert completed["run_id"] == "g3-run"
+    assert platform.list_runs("graph3_credit_hold_remediation")[0]["run_id"] == "g3-run"
