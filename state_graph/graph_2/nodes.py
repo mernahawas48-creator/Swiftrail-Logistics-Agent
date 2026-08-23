@@ -60,7 +60,14 @@ def retrieve_policy(state: SharedGraphState, context: NodeContext) -> NodeResult
     ]
     if not evidence:
         raise RuntimeError("No rate-exception policy evidence was retrieved.")
-    return NodeResult("classify_authority", {"policy_evidence": evidence})
+    analysis = context.require("policy_analyst").analyze(evidence=evidence)
+    return NodeResult(
+        "classify_authority",
+        {
+            "policy_evidence": evidence,
+            "policy_analysis": analysis.to_dict(),
+        },
+    )
 
 
 def classify_authority(
@@ -70,6 +77,7 @@ def classify_authority(
         shipment=state.data["shipment"],
         exception=state.data["rate_exception"],
         policy=state.data["policy_evidence"],
+        analysis=state.data["policy_analysis"],
     )
     requires_human = decision.decision == "human_review"
     return NodeResult(
@@ -97,6 +105,7 @@ def admin_request(state: SharedGraphState) -> dict[str, Any]:
         "shipment": state.data["shipment"],
         "rate_exception": state.data["rate_exception"],
         "policy_evidence": state.data["policy_evidence"],
+        "policy_analysis": state.data["policy_analysis"],
         "planner_decision": state.data["planner_decision"],
     }
 
