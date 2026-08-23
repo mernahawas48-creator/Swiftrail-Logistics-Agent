@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import asyncio
-import threading
 from typing import Any, Protocol
 
 from agent.mcp_graph_client import GraphMCPClient
+from state_graph.core.async_utils import run_async
 
 
 class DeliveryRecoveryTools(Protocol):
@@ -28,29 +27,6 @@ class DeliveryRecoveryTools(Protocol):
         employee_id: int,
         request: dict[str, Any],
     ) -> dict[str, Any]: ...
-
-
-def _run_async(awaitable):
-    try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.run(awaitable)
-
-    result: list[Any] = []
-    errors: list[BaseException] = []
-
-    def runner() -> None:
-        try:
-            result.append(asyncio.run(awaitable))
-        except BaseException as exc:
-            errors.append(exc)
-
-    thread = threading.Thread(target=runner)
-    thread.start()
-    thread.join()
-    if errors:
-        raise errors[0]
-    return result[0]
 
 
 class LiveDeliveryRecoveryTools:
@@ -87,7 +63,7 @@ class LiveDeliveryRecoveryTools:
             finally:
                 await client.close()
 
-        return _run_async(operation())
+        return run_async(operation())
 
     def load_shipment(
         self, *, session_id: str, employee_id: int, shipment_id: int
