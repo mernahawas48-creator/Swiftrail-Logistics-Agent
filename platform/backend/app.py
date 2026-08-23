@@ -3,7 +3,7 @@ platform/backend/app.py — the product surface described in the project
 brief: a real website talking to a live MCP-style backend, not a mockup.
 
 Run with:
-    cd platform/backend && python -m uvicorn app:app --reload --port 8000
+    cd platform/backend && python -m uvicorn app:app --reload --port 8080
 
 Endpoints are grouped:
   /api/agents, /api/chat, /api/runs           -> USER surface
@@ -13,20 +13,15 @@ Endpoints are grouped:
   /api/admin/tickets                          -> admin: failure tickets
   /api/demo/seed                              -> convenience for the demo
 
-Only Graph 3 is a real, live state-graph agent in this codebase (that is
-Person 3's scope). The memory/RAG and planning agents, and Graphs 1/2, are
-represented here as real rows in the same tables (agents, tools, runs) so
-the SAME admin/user surface manages them — wiring each one's chat handler
-to the real agent/agent_loop.py and state_graph/graph1_*.py /
-graph2_*.py modules is a one-function change per agent (see
-`AGENT_CHAT_HANDLERS` below), not a platform rewrite.
+All three state graphs are connected to the user and admin surfaces. The
+memory/RAG and planning agents remain catalog entries until their chat
+handlers are connected to their existing backend implementations.
 """
 from __future__ import annotations
 
 import re
 import sys
 from pathlib import Path
-from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -35,12 +30,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from platform_app.graph_integration import (
+    GRAPH_1_AGENT_ID,
+    GRAPH_2_AGENT_ID,
+    PlatformGraphIntegration,
+)
 from state_graph.graph_3 import mcp_tools, registry
 from state_graph.graph_3.checkpointer import Checkpointer
 from state_graph.graph_3.graph3_credit_hold import GRAPH_NAME as G3_NAME
 from state_graph.graph_3.graph3_credit_hold import graph as g3
 
 cp = Checkpointer()
+platform_graphs = PlatformGraphIntegration()
 
 app = FastAPI(title="Swiftrail Platform API")
 app.add_middleware(
@@ -52,15 +53,15 @@ FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
 # ---------------------------------------------------------------------------
 # Agent catalog (drives both the user's agent switcher and the admin's tool
-# management screen). Graph 3 is live; the rest are declared here with the
-# same shape so the platform is genuinely agent-agnostic.
+# management screen). All state graphs are live; the remaining agent types
+# use the same shape so the platform stays agent-agnostic.
 # ---------------------------------------------------------------------------
 AGENTS = [
     {"id": G3_NAME, "name": "Credit-Hold Remediation", "kind": "state_graph",
      "description": "Resolves overdue-invoice credit holds and invoice disputes. Owner: Person 3."},
-    {"id": "graph1_delivery_exception", "name": "Delivery Exception Recovery", "kind": "state_graph",
+    {"id": GRAPH_1_AGENT_ID, "name": "Delivery Exception Recovery", "kind": "state_graph",
      "description": "Reroutes shipments around delivery exceptions. Owner: Person 1."},
-    {"id": "graph2_rate_exception", "name": "Rate Exception Approval", "kind": "state_graph",
+    {"id": GRAPH_2_AGENT_ID, "name": "Rate Exception Approval", "kind": "state_graph",
      "description": "Routes discount/rate exceptions to finance approval. Owner: Person 2."},
     {"id": "memory_rag_agent", "name": "Memory & RAG Agent", "kind": "memory_rag",
      "description": "Policy questions and cross-session customer recall."},
@@ -72,14 +73,14 @@ AGENTS = [
 class ChatRequest(BaseModel):
     agent_id: str
     message: str
-    run_id: Optional[str] = None
+    run_id: str | None = None
 
 
 class ChatResponse(BaseModel):
-    run_id: Optional[str] = None
+    run_id: str | None = None
     reply: str
-    status: Optional[str] = None
-    current_node: Optional[str] = None
+    status: str | None = None
+    current_node: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -91,18 +92,21 @@ def list_agents():
 
 
 @app.get("/api/runs")
-def list_runs(graph_name: Optional[str] = None):
+def list_runs(graph_name: str | None = None):
     return cp.list_runs(graph_name)
 
 
 @app.get("/api/runs/{run_id}")
 def get_run(run_id: str):
     run = cp.get_run(run_id)
-    if not run:
+    if run:
+        history = cp.history(run_id)
+        latest = cp.latest_checkpoint(run_id)
+        return {"run": run, "history": history, "state": latest["state"] if latest else {}}
+    integrated = platform_graphs.get_run(run_id)
+    if integrated is None:
         raise HTTPException(404, "run not found")
-    history = cp.history(run_id)
-    latest = cp.latest_checkpoint(run_id)
-    return {"run": run, "history": history, "state": latest["state"] if latest else {}}
+    return integrated
 
 
 _START_RE = re.compile(
@@ -110,7 +114,7 @@ _START_RE = re.compile(
 )
 
 
-def _handle_graph3_chat(message: str, run_id: Optional[str]) -> ChatResponse:
+def _handle_graph3_chat(message: str, run_id: str | None) -> ChatResponse:
     m = _START_RE.match(message.strip())
     if m:
         customer_id = m.group("cust")
@@ -190,8 +194,12 @@ def _status_reply(run_id: str) -> str:
 
 AGENT_CHAT_HANDLERS = {
     G3_NAME: _handle_graph3_chat,
-    # "graph1_delivery_exception": _handle_graph1_chat,   # Person 1 wires this in
-    # "graph2_rate_exception": _handle_graph2_chat,        # Person 2 wires this in
+    GRAPH_1_AGENT_ID: lambda message, run_id: ChatResponse(
+        **platform_graphs.chat(GRAPH_1_AGENT_ID, message, run_id)
+    ),
+    GRAPH_2_AGENT_ID: lambda message, run_id: ChatResponse(
+        **platform_graphs.chat(GRAPH_2_AGENT_ID, message, run_id)
+    ),
 }
 
 
@@ -281,39 +289,56 @@ def delete_rag_doc(doc_id: str):
 # ADMIN SURFACE — HITL queue
 # ---------------------------------------------------------------------------
 @app.get("/api/admin/hitl")
-def list_hitl(status: Optional[str] = None):
+def list_hitl(status: str | None = None):
     tasks = cp.list_hitl_tasks(status)
     for t in tasks:
         run = cp.get_run(t["run_id"])
         t["graph_status"] = run["status"] if run else None
+        t["agent_id"] = G3_NAME
+    tasks.extend(platform_graphs.hitl_tasks())
+    if status is not None:
+        tasks = [task for task in tasks if task["status"] == status]
     return tasks
 
 
 class HitlDecision(BaseModel):
     decision: str  # "approve" | "reject"
     decided_by: str = "admin"
+    admin_employee_id: int = 3
 
 
 @app.post("/api/admin/hitl/{task_id}/decide")
 def decide_hitl(task_id: str, body: HitlDecision):
     tasks = {t["task_id"]: t for t in cp.list_hitl_tasks()}
     task = tasks.get(task_id)
-    if not task:
+    if task:
+        cp.decide_hitl_task(task_id, body.decision, body.decided_by)
+        g3.resume(task["run_id"], extra_state={"finance_decision": body.decision})
+        return {"task_id": task_id, "run": cp.get_run(task["run_id"])}
+    result = platform_graphs.decide_hitl(
+        task_id,
+        decision=body.decision,
+        decided_by=body.decided_by,
+        admin_employee_id=body.admin_employee_id,
+    )
+    if result is None:
         raise HTTPException(404, "hitl task not found")
-    cp.decide_hitl_task(task_id, body.decision, body.decided_by)
-    g3.resume(task["run_id"], extra_state={"finance_decision": body.decision})
-    return {"task_id": task_id, "run": cp.get_run(task["run_id"])}
+    return {"task_id": task_id, "run": result}
 
 
 # ---------------------------------------------------------------------------
 # ADMIN SURFACE — tickets
 # ---------------------------------------------------------------------------
 @app.get("/api/admin/tickets")
-def list_tickets(status: Optional[str] = None):
+def list_tickets(status: str | None = None):
     tickets = cp.list_tickets(status)
     for t in tickets:
         run = cp.get_run(t["run_id"])
         t["graph_status"] = run["status"] if run else None
+        t["agent_id"] = G3_NAME
+    tickets.extend(platform_graphs.tickets())
+    if status is not None:
+        tickets = [ticket for ticket in tickets if ticket["status"] == status]
     return tickets
 
 
@@ -325,12 +350,15 @@ class TicketStatusChange(BaseModel):
 def set_ticket_status(ticket_id: str, body: TicketStatusChange):
     tickets = {t["ticket_id"]: t for t in cp.list_tickets()}
     ticket = tickets.get(ticket_id)
-    if not ticket:
+    if ticket:
+        updated = cp.set_ticket_status(ticket_id, body.status)
+        if body.status == "resolved":
+            g3.resume(ticket["run_id"])
+        return {"ticket": updated, "run": cp.get_run(ticket["run_id"])}
+    result = platform_graphs.set_ticket_status(ticket_id, body.status)
+    if result is None:
         raise HTTPException(404, "ticket not found")
-    updated = cp.set_ticket_status(ticket_id, body.status)
-    if body.status == "resolved":
-        g3.resume(ticket["run_id"])
-    return {"ticket": updated, "run": cp.get_run(ticket["run_id"])}
+    return result
 
 
 # ---------------------------------------------------------------------------
