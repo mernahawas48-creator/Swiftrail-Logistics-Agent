@@ -82,6 +82,21 @@
       request_more_evidence: "Request more evidence",
       wait_for_finance_admin: "Finance admin review (HITL)",
       execute_remediation_action: "Execute action (Constrained ReAct)",
+      session_started: "Customer session started",
+      await_query: "Awaiting a question",
+      rag: "Verified RAG retrieval",
+      memory: "Verified memory recall",
+      shipment: "Shipment MCP lookup",
+      invoice: "Invoice MCP lookup",
+      customer: "Customer MCP lookup",
+      credit: "Credit MCP lookup",
+      context: "Context response",
+      agent_failed: "Agent request failed",
+      authenticate_mcp: "Authenticate with MCP",
+      decompose: "Decompose the shipment problem",
+      execute_subtasks: "Execute planned subtasks",
+      verify_actions: "Verify safe actions",
+      planning_failed: "Planning failure",
       complete: "Complete",
     };
     async function loadAgents() {
@@ -92,7 +107,7 @@
         const el = document.createElement("div");
         el.className = "agent-item";
         el.dataset.id = a.id;
-        const live = a.kind === "state_graph";
+        const live = ["state_graph", "memory_rag", "planning"].includes(a.kind);
         el.innerHTML = `<div class="name"><span class="dot ${live ? 'live' : 'stub'}"></span>${a.name}</div>
                     <div class="kind">${a.kind}${live ? " · live" : ""}</div>`;
         el.onclick = () => selectAgent(a);
@@ -118,6 +133,12 @@
       } else if (agent.id === "graph2_rate_exception") {
         hint.style.display = "block";
         hint.textContent = "Try: start shipment 5, employee 3";
+      } else if (agent.id === "memory_rag_agent") {
+        hint.style.display = "block";
+        hint.textContent = "First: start customer 3, role finance_manager — then ask a policy or previous-history question.";
+      } else if (agent.id === "planning_agent") {
+        hint.style.display = "block";
+        hint.textContent = "Try: plan shipment 3, customer 3, employee 1, method decomposition_first";
       } else {
         hint.style.display = "none";
       }

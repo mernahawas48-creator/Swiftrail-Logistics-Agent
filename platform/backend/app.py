@@ -13,9 +13,9 @@ Endpoints are grouped:
   /api/admin/tickets                          -> admin: failure tickets
   /api/demo/seed                              -> convenience for the demo
 
-All three state graphs are connected to the user and admin surfaces. The
-memory/RAG and planning agents remain catalog entries until their chat
-handlers are connected to their existing backend implementations.
+All three state graphs and the existing memory/RAG and planning agents are
+connected to the shared user surface. The state graphs also expose their
+persisted HITL tasks and failure tickets through the admin surface.
 """
 from __future__ import annotations
 
@@ -30,6 +30,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from platform_app.agent_integration import (
+    MEMORY_RAG_AGENT_ID,
+    PLANNING_AGENT_ID,
+    PlatformAgentIntegration,
+)
 from platform_app.graph_integration import (
     GRAPH_1_AGENT_ID,
     GRAPH_2_AGENT_ID,
@@ -42,6 +47,7 @@ from state_graph.graph_3.graph3_credit_hold import graph as g3
 
 cp = Checkpointer()
 platform_graphs = PlatformGraphIntegration()
+platform_agents = PlatformAgentIntegration()
 
 app = FastAPI(title="Swiftrail Platform API")
 app.add_middleware(
@@ -63,9 +69,9 @@ AGENTS = [
      "description": "Reroutes shipments around delivery exceptions. Owner: Person 1."},
     {"id": GRAPH_2_AGENT_ID, "name": "Rate Exception Approval", "kind": "state_graph",
      "description": "Routes discount/rate exceptions to finance approval. Owner: Person 2."},
-    {"id": "memory_rag_agent", "name": "Memory & RAG Agent", "kind": "memory_rag",
+    {"id": MEMORY_RAG_AGENT_ID, "name": "Memory & RAG Agent", "kind": "memory_rag",
      "description": "Policy questions and cross-session customer recall."},
-    {"id": "planning_agent", "name": "Decomposition & Planning Agent", "kind": "planning",
+    {"id": PLANNING_AGENT_ID, "name": "Decomposition & Planning Agent", "kind": "planning",
      "description": "Multi-blocker shipment resolution planning."},
 ]
 
@@ -104,9 +110,12 @@ def get_run(run_id: str):
         latest = cp.latest_checkpoint(run_id)
         return {"run": run, "history": history, "state": latest["state"] if latest else {}}
     integrated = platform_graphs.get_run(run_id)
-    if integrated is None:
-        raise HTTPException(404, "run not found")
-    return integrated
+    if integrated is not None:
+        return integrated
+    agent_run = platform_agents.get_run(run_id)
+    if agent_run is not None:
+        return agent_run
+    raise HTTPException(404, "run not found")
 
 
 _START_RE = re.compile(
@@ -199,6 +208,12 @@ AGENT_CHAT_HANDLERS = {
     ),
     GRAPH_2_AGENT_ID: lambda message, run_id: ChatResponse(
         **platform_graphs.chat(GRAPH_2_AGENT_ID, message, run_id)
+    ),
+    MEMORY_RAG_AGENT_ID: lambda message, run_id: ChatResponse(
+        **platform_agents.chat(MEMORY_RAG_AGENT_ID, message, run_id)
+    ),
+    PLANNING_AGENT_ID: lambda message, run_id: ChatResponse(
+        **platform_agents.chat(PLANNING_AGENT_ID, message, run_id)
     ),
 }
 
