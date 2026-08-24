@@ -224,7 +224,9 @@ def list_rag_docs():
 @app.post("/api/admin/rag/documents")
 def add_rag_doc(doc: RagDoc):
     try:
-        return rag_admin.add_document(**doc.model_dump())
+        result = rag_admin.add_document(**doc.model_dump())
+        platform_agents.refresh_rag()
+        return result
     except Exception as exc:
         raise _rag_error(exc) from exc
 
@@ -240,7 +242,9 @@ def update_rag_doc(doc_id: str, update: RagUpdate):
 @app.delete("/api/admin/rag/documents/{doc_id}")
 def delete_rag_doc(doc_id: str):
     try:
-        return rag_admin.remove_document(doc_id)
+        result = rag_admin.remove_document(doc_id)
+        platform_agents.refresh_rag()
+        return result
     except Exception as exc:
         raise _rag_error(exc) from exc
 

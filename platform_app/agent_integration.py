@@ -123,6 +123,10 @@ class PlatformAgentIntegration:
             self._memory_agent = self._memory_agent_factory()
         return self._memory_agent
 
+    def refresh_rag(self) -> None:
+        if self._memory_agent is not None:
+            self._memory_agent._rag_pipeline = None
+
     def chat(self, agent_id: str, message: str, run_id: str | None) -> dict[str, Any]:
         if agent_id == MEMORY_RAG_AGENT_ID:
             return self._chat_memory(message, run_id)

@@ -25,13 +25,23 @@ def load_shipment(state: SharedGraphState, context: NodeContext) -> NodeResult:
 def validate_delivery_exception(
     state: SharedGraphState, context: NodeContext
 ) -> NodeResult:
-    del context
-    shipment = state.data["shipment"]
+    request = _request(state)
+
+    shipment = context.require("delivery_tools").load_shipment(
+        session_id=request.session_id,
+        employee_id=request.employee_id,
+        shipment_id=request.shipment_id,
+    )
+
     if shipment.get("status") != "delivery_exception":
         raise RuntimeError(
             "Shipment is not in the delivery_exception state required by Graph 1."
         )
-    return NodeResult("decompose_recovery_plan")
+
+    return NodeResult(
+        "decompose_recovery_plan",
+        {"shipment": shipment},
+    )
 
 
 def decompose_recovery_plan(
