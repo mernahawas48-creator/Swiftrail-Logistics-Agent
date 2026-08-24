@@ -187,32 +187,94 @@
     async function loadHitl() {
       const res = await fetch(`${API}/admin/hitl`);
       const tasks = await res.json();
+
       const el = document.getElementById("section-hitl");
-      el.innerHTML = `<div class="card"><h3>Pending human decisions</h3><div class="meta">A run only resumes after a decision is made here.</div><div id="hitl-list"></div></div>`;
+
+      el.innerHTML = `
+        <div class="card">
+          <h3>Pending human decisions</h3>
+          <div class="meta">
+            A run only resumes after a decision is made here.
+          </div>
+          <div id="hitl-list"></div>
+        </div>
+      `;
+
       const list = el.querySelector("#hitl-list");
-      if (tasks.length === 0) list.innerHTML = '<div class="empty-state" style="padding:20px 0;">No HITL tasks.</div>';
+
+      if (tasks.length === 0) {
+        list.innerHTML =
+          '<div class="empty-state" style="padding:20px 0;">No HITL tasks.</div>';
+      }
+
       tasks.forEach(t => {
         const row = document.createElement("div");
         row.className = "queue-row";
+
         row.innerHTML = `
-      <div class="top-line">
-        <span class="badge ${t.status}">${t.status}</span>
-        <span class="meta">${esc(t.agent_id || "state graph")} · ${ago(t.created_at)} · run ${t.run_id.slice(0, 8)}</span>
-      </div>
-      <div class="reason">${esc(t.reason)}</div>
-      <div class="actions">
-        ${t.status === "pending" ? `
-          <button class="btn clear act-approve" style="padding:6px 12px;font-size:12px;">Approve</button>
-          <button class="btn stop act-reject" style="padding:6px 12px;font-size:12px;">Reject</button>
-        ` : `<span class="meta">Decided: ${esc(t.decision)} by ${esc(t.decided_by || '—')}</span>`}
-      </div>`;
+          <div class="top-line">
+            <span class="badge ${t.status}">
+              ${t.status}
+            </span>
+
+            <span class="meta">
+              ${esc(t.agent_id || "state graph")}
+              · ${ago(t.created_at)}
+              · run ${t.run_id.slice(0, 8)}
+            </span>
+          </div>
+
+          <div class="reason">
+            ${esc(t.reason)}
+          </div>
+
+          <details style="margin-top:10px;">
+            <summary style="cursor:pointer;">
+              View persisted state
+            </summary>
+
+            <pre style="white-space:pre-wrap; font-size:11px;">
+    ${esc(JSON.stringify(t.state || {}, null, 2))}
+            </pre>
+          </details>
+
+          <div class="actions">
+            ${t.status === "pending"
+            ? `
+                  <button
+                    class="btn clear act-approve"
+                    style="padding:6px 12px;font-size:12px;">
+                    Approve
+                  </button>
+
+                  <button
+                    class="btn stop act-reject"
+                    style="padding:6px 12px;font-size:12px;">
+                    Reject
+                  </button>
+                `
+            : `
+                  <span class="meta">
+                    Decided: ${esc(t.decision)}
+                    by ${esc(t.decided_by || "—")}
+                  </span>
+                `
+          }
+          </div>
+        `;
+
         if (t.status === "pending") {
-          row.querySelector(".act-approve").onclick = () => decide(t.task_id, "approve");
-          row.querySelector(".act-reject").onclick = () => decide(t.task_id, "reject");
+          row.querySelector(".act-approve").onclick = () =>
+            decide(t.task_id, "approve");
+
+          row.querySelector(".act-reject").onclick = () =>
+            decide(t.task_id, "reject");
         }
+
         list.appendChild(row);
       });
     }
+
     async function decide(taskId, decision) {
       await fetch(`${API}/admin/hitl/${taskId}/decide`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -225,25 +287,98 @@
     async function loadTickets() {
       const res = await fetch(`${API}/admin/tickets`);
       const tickets = await res.json();
+
       const el = document.getElementById("section-tickets");
-      el.innerHTML = `<div class="card"><h3>Failure tickets</h3><div class="meta">Unplanned mid-node failures — distinct from HITL. Resolving resumes the run from its checkpoint.</div><div id="ticket-list"></div></div>`;
+
+      el.innerHTML = `
+        <div class="card">
+          <h3>Failure tickets</h3>
+
+          <div class="meta">
+            Unplanned mid-node failures — distinct from HITL.
+            Resolving resumes the run from its checkpoint.
+          </div>
+
+          <div id="ticket-list"></div>
+        </div>
+      `;
+
       const list = el.querySelector("#ticket-list");
-      if (tickets.length === 0) list.innerHTML = '<div class="empty-state" style="padding:20px 0;">No tickets.</div>';
+
+      if (tickets.length === 0) {
+        list.innerHTML =
+          '<div class="empty-state" style="padding:20px 0;">No tickets.</div>';
+      }
+
       tickets.forEach(t => {
         const row = document.createElement("div");
         row.className = "queue-row";
+
         row.innerHTML = `
-      <div class="top-line">
-        <span class="badge ${t.status}">${t.status}</span>
-        <span class="meta">${esc(t.agent_id || "state graph")} · ${ago(t.created_at)} · run ${t.run_id.slice(0, 8)} · node ${esc(t.node_name || t.failed_node)}</span>
-      </div>
-      <div class="reason">${esc(t.error_type)}: ${esc(t.error_message)}</div>
-      <div class="actions">
-        ${t.status === "open" ? `<button class="btn ghost act-investigate" style="padding:6px 12px;font-size:12px;">Mark investigating</button>` : ""}
-        ${t.status === "investigating" ? `<button class="btn clear act-resolve" style="padding:6px 12px;font-size:12px;">Resolve &amp; resume</button>` : ""}
-      </div>`;
-        if (t.status === "open") row.querySelector(".act-investigate").onclick = () => setStatus(t.ticket_id, "investigating");
-        if (t.status === "investigating") row.querySelector(".act-resolve").onclick = () => setStatus(t.ticket_id, "resolved");
+          <div class="top-line">
+            <span class="badge ${t.status}">
+              ${t.status}
+            </span>
+
+            <span class="meta">
+              ${esc(t.agent_id || "state graph")}
+              · ${ago(t.created_at)}
+              · run ${t.run_id.slice(0, 8)}
+              · node ${esc(t.node_name || t.failed_node)}
+            </span>
+          </div>
+
+          <div class="reason">
+            ${esc(t.error_type)}: ${esc(t.error_message)}
+          </div>
+
+          <details style="margin-top:10px;">
+            <summary style="cursor:pointer;">
+              View persisted state
+            </summary>
+
+            <pre style="white-space:pre-wrap; font-size:11px;">
+    ${esc(JSON.stringify(t.state || {}, null, 2))}
+            </pre>
+          </details>
+
+          <div class="actions">
+
+            ${t.status === "open"
+            ? `
+                  <button
+                    class="btn ghost act-investigate"
+                    style="padding:6px 12px;font-size:12px;">
+                    Mark investigating
+                  </button>
+                `
+            : ""
+          }
+
+            ${t.status === "investigating"
+            ? `
+                  <button
+                    class="btn clear act-resolve"
+                    style="padding:6px 12px;font-size:12px;">
+                    Resolve & resume
+                  </button>
+                `
+            : ""
+          }
+
+          </div>
+        `;
+
+        if (t.status === "open") {
+          row.querySelector(".act-investigate").onclick = () =>
+            setStatus(t.ticket_id, "investigating");
+        }
+
+        if (t.status === "investigating") {
+          row.querySelector(".act-resolve").onclick = () =>
+            setStatus(t.ticket_id, "resolved");
+        }
+
         list.appendChild(row);
       });
     }

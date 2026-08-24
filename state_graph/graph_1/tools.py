@@ -32,8 +32,16 @@ class DeliveryRecoveryTools(Protocol):
 class LiveDeliveryRecoveryTools:
     """Graph 1 adapter for the existing live MCP server."""
 
-    def __init__(self, url: str = "http://127.0.0.1:8000/mcp") -> None:
+    def __init__(
+        self,
+        url: str = "http://127.0.0.1:8000/mcp",
+        *,
+        agent_id: str = "graph1_delivery_exception",
+        permission_checker=None,
+    ) -> None:
         self.url = url
+        self.agent_id = agent_id
+        self.permission_checker = permission_checker
 
     def _call(
         self,
@@ -44,7 +52,11 @@ class LiveDeliveryRecoveryTools:
         request: dict[str, Any],
     ) -> dict[str, Any]:
         async def operation() -> dict[str, Any]:
-            client = GraphMCPClient(self.url)
+            client = GraphMCPClient(
+                self.url,
+                agent_id=self.agent_id,
+                permission_checker=self.permission_checker,
+            )
             try:
                 authentication = await client.authenticate(session_id, employee_id)
                 if authentication.get("success") is not True:
