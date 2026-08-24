@@ -11,7 +11,8 @@ from state_graph.graph_1.tools import LiveDeliveryRecoveryTools
 
 
 def build_live_service(
-    *, mcp_url: str = "http://127.0.0.1:8000/mcp"
+    *, mcp_url: str = "http://127.0.0.1:8000/mcp",
+    permission_checker=None,
 ) -> GraphService:
     registry = GraphRegistry()
     registry.register(build_delivery_recovery_graph())
@@ -19,7 +20,7 @@ def build_live_service(
         registry,
         MySQLCheckpointStore(),
         services={
-            "delivery_tools": LiveDeliveryRecoveryTools(mcp_url),
+            "delivery_tools": LiveDeliveryRecoveryTools(mcp_url, permission_checker=permission_checker),
             "task_decomposer": MistralRecoveryDecomposer(),
             "policy_rag": HybridRAG(),
         },

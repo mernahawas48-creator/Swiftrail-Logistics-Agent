@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
+from platform_app.admin.runtime_client import RuntimeAdminClient
 
 from state_graph.core.exceptions import RunNotFoundError
 from state_graph.core.types import RunStatus
@@ -15,6 +16,22 @@ from state_graph.graph_3.definition import GRAPH_NAME as GRAPH_3_NAME
 GRAPH_1_AGENT_ID = "graph1_delivery_exception"
 GRAPH_2_AGENT_ID = "graph2_rate_exception"
 GRAPH_3_AGENT_ID = "graph3_credit_hold_remediation"
+
+_runtime_admin = RuntimeAdminClient.from_env()
+
+
+def _runtime_permission_checker(agent_id: str, tool_name: str) -> bool:
+    agents = _runtime_admin.list_agents()
+
+    for agent in agents:
+        if agent["id"] != agent_id:
+            continue
+
+        for tool in agent["tools"]:
+            if tool["tool_name"] == tool_name:
+                return bool(tool["enabled"])
+
+    return False
 
 _GRAPH_1_START = re.compile(
     r"^start\s+shipment\s+(?P<shipment>\d+)"
@@ -44,19 +61,24 @@ _GRAPH_3_START = re.compile(
 def _default_graph_1_service():
     from state_graph.graph_1.live import build_live_service
 
-    return build_live_service()
-
+    return build_live_service(
+        permission_checker=_runtime_permission_checker
+    )
 
 def _default_graph_2_service():
     from state_graph.graph_2.live import build_live_service
 
-    return build_live_service()
+    return build_live_service(
+        permission_checker=_runtime_permission_checker
+    )
 
 
 def _default_graph_3_service():
     from state_graph.graph_3.live import build_live_service
 
-    return build_live_service()
+    return build_live_service(
+        permission_checker=_runtime_permission_checker
+    )
 
 
 def _epoch(value: Any) -> float:
